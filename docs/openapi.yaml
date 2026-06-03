@@ -1,0 +1,202 @@
+openapi: 3.0.0
+info:
+  title: Klinik Gigi API
+  description: Dokumentasi API lengkap (Public, Admin Auth, dan Admin CRUD)
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000/api
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  /v1/public/home:
+    get:
+      summary: Dapatkan data Home (Banners, News, Articles, Tip)
+      tags: [Public API]
+      responses:
+        '200':
+          description: OK
+
+  /v1/public/articles/{slug}:
+    get:
+      summary: Dapatkan detail Artikel & tambah view_count
+      tags: [Public API]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+
+  /v1/public/articles/{slug}/like:
+    post:
+      summary: Tambah like_count pada Artikel
+      tags: [Public API]
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+
+  /v1/public/news/{id}/like:
+    post:
+      summary: Tambah like_count pada Berita
+      tags: [Public API]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+  
+  /v1/admin/login:
+    post:
+      summary: Login Admin
+      tags: [Admin Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+
+  /v1/admin/banners:
+    get:
+      summary: Get all Banners
+      tags: [Admin Banners]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create Banner
+      tags: [Admin Banners]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                link_url: { type: string }
+                is_active: { type: integer, description: "1 or 0" }
+                image: { type: string, format: binary }
+      responses:
+        '201':
+          description: Created
+
+  /v1/admin/banners/{id}:
+    get:
+      summary: Get Banner Details
+      tags: [Admin Banners]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Update Banner (Use POST with _method=PUT for multipart/form-data)
+      tags: [Admin Banners]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                _method: { type: string, example: "PUT" }
+                title: { type: string }
+                link_url: { type: string }
+                is_active: { type: integer }
+                image: { type: string, format: binary }
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete Banner
+      tags: [Admin Banners]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  # (Pattern is the same for News, Articles, Products, Tips)
+  /v1/admin/news:
+    get:
+      summary: Get all News
+      tags: [Admin News]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create News
+      tags: [Admin News]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+                is_published: { type: integer }
+                image: { type: string, format: binary }
+      responses: { '201': { description: Created } }
+
+  /v1/admin/products:
+    get:
+      summary: Get all Products
+      tags: [Admin Products]
+      security: [{ bearerAuth: [] }]
+      responses: { '200': { description: OK } }
+    post:
+      summary: Create Product
+      tags: [Admin Products]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                usage_instructions: { type: string }
+                dosage: { type: string }
+                is_active: { type: integer }
+                image: { type: string, format: binary }
+      responses: { '201': { description: Created } }
