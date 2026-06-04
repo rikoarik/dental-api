@@ -3,66 +3,56 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Banner\StoreBannerRequest;
+use App\Http\Requests\Admin\Banner\UpdateBannerRequest;
 use App\Models\Banner;
 use App\Traits\ApiResponser;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class BannerController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return $this->success(Banner::latest()->get(), 'Data banner berhasil dimuat');
+        return $this->success(
+            Banner::latest()->paginate(15),
+            'Data banner berhasil dimuat'
+        );
     }
 
-    public function store(Request $request)
+    public function store(StoreBannerRequest $request): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'link_url' => 'nullable|url',
-            'is_active' => 'boolean',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $banner = Banner::create($request->only(['title', 'link_url', 'is_active']));
+        $data = collect($request->validated())->except('image')->all();
+        $banner = Banner::create($data);
 
         if ($request->hasFile('image')) {
             $banner->addMediaFromRequest('image')->toMediaCollection('banner_image');
         }
 
-        return $this->success($banner, 'Banner berhasil dibuat', 201);
+        return $this->success($banner->refresh(), 'Banner berhasil dibuat', 201);
     }
 
-    public function show($id)
+    public function show(Banner $banner): JsonResponse
     {
-        $banner = Banner::findOrFail($id);
         return $this->success($banner, 'Detail banner');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateBannerRequest $request, Banner $banner): JsonResponse
     {
-        $request->validate([
-            'title' => 'string|max:255',
-            'link_url' => 'nullable|url',
-            'is_active' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $banner = Banner::findOrFail($id);
-        $banner->update($request->only(['title', 'link_url', 'is_active']));
+        $data = collect($request->validated())->except('image')->all();
+        $banner->update($data);
 
         if ($request->hasFile('image')) {
             $banner->clearMediaCollection('banner_image');
             $banner->addMediaFromRequest('image')->toMediaCollection('banner_image');
         }
 
-        return $this->success($banner, 'Banner berhasil diperbarui');
+        return $this->success($banner->refresh(), 'Banner berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Banner $banner): JsonResponse
     {
-        $banner = Banner::findOrFail($id);
         $banner->clearMediaCollection('banner_image');
         $banner->delete();
 

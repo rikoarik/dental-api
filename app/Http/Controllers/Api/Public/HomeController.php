@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api\Public;
 
 use App\Http\Controllers\Controller;
-use App\Traits\ApiResponser;
-use App\Models\News;
 use App\Models\Article;
-use App\Models\Tip;
 use App\Models\Banner;
+use App\Models\News;
+use App\Models\Tip;
+use App\Traits\ApiResponser;
+use Illuminate\Http\JsonResponse;
 
 class HomeController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
         $banners = Banner::where('is_active', true)->latest()->get();
         $latest_news = News::where('is_published', true)->latest()->take(3)->get();

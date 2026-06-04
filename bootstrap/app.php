@@ -1,9 +1,17 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,27 +25,55 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
+
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, $request) {
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Unauthenticated.'
+                    'status' => false,
+                    'message' => 'Unauthenticated.',
+                    'data' => null,
                 ], 401);
             }
         });
-        
-        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, $request) {
+
+        $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Validation failed',
-                    'errors' => $e->errors()
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'data' => [
+                        'errors' => $e->errors(),
+                    ],
                 ], 422);
             }
         });
+
+        $exceptions->render(function (ModelNotFoundException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Data tidak ditemukan.',
+                    'data' => null,
+                ], 404);
+            }
+        });
+
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Terlalu banyak permintaan. Coba lagi nanti.',
+                    'data' => null,
+                ], 429);
+            }
+        });
     })->withSchedule(function (Schedule $schedule) {
-        // Scheduler untuk memutar tips harian setiap hari tengah malam
         $schedule->command('tips:rotate')->daily();
     })->create();

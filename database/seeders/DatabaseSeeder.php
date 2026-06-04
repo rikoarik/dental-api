@@ -10,19 +10,23 @@ use App\Models\Product;
 use App\Models\Banner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Buat Admin User
-        User::firstOrCreate([
-            'email' => 'admin@clinic.com'
+        $this->call(RolesAndPermissionsSeeder::class);
+
+        $admin = User::firstOrCreate([
+            'email' => 'admin@clinic.com',
         ], [
             'name' => 'Administrator',
             'password' => Hash::make('password'),
         ]);
+
+        if (! $admin->hasRole('admin')) {
+            $admin->assignRole('admin');
+        }
 
         // ==========================================
         // 1. DATA TIPS HARIAN
@@ -66,9 +70,8 @@ class DatabaseSeeder extends Seeder
         foreach ($news_data as $news) {
             News::create([
                 'title' => $news[0],
-                'slug' => Str::slug($news[0]),
                 'content' => $news[1],
-                'is_published' => true
+                'is_published' => true,
             ]);
         }
 
@@ -87,11 +90,10 @@ class DatabaseSeeder extends Seeder
         foreach ($articles_data as $index => $article) {
             Article::create([
                 'title' => $article[0],
-                'slug' => Str::slug($article[0]),
                 'content' => $article[1],
                 'view_count' => rand(50, 500),
                 'like_count' => rand(10, 100),
-                'is_published' => true
+                'is_published' => true,
             ]);
         }
 
@@ -140,11 +142,10 @@ class DatabaseSeeder extends Seeder
         foreach ($products_data as $product) {
             Product::create([
                 'name' => $product['name'],
-                'slug' => Str::slug($product['name']),
                 'description' => $product['description'],
                 'usage_instructions' => $product['usage_instructions'],
                 'dosage' => $product['dosage'],
-                'is_active' => true
+                'is_active' => true,
             ]);
         }
     }

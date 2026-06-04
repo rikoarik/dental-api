@@ -3,62 +3,44 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Article\StoreArticleRequest;
+use App\Http\Requests\Admin\Article\UpdateArticleRequest;
 use App\Models\Article;
 use App\Traits\ApiResponser;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 
 class ArticleController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return $this->success(Article::latest()->get(), 'Data artikel berhasil dimuat');
+        return $this->success(
+            Article::latest()->paginate(15),
+            'Data artikel berhasil dimuat'
+        );
     }
 
-    public function store(Request $request)
+    public function store(StoreArticleRequest $request): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'is_published' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $data = $request->only(['title', 'content', 'is_published']);
-        $data['slug'] = Str::slug($request->title) . '-' . time();
+        $data = collect($request->validated())->except('image')->all();
         $article = Article::create($data);
 
         if ($request->hasFile('image')) {
             $article->addMediaFromRequest('image')->toMediaCollection('cover_image');
         }
 
-        return $this->success($article, 'Artikel berhasil dibuat', 201);
+        return $this->success($article->refresh(), 'Artikel berhasil dibuat', 201);
     }
 
-    public function show($id)
+    public function show(Article $article): JsonResponse
     {
-        $article = Article::findOrFail($id);
         return $this->success($article, 'Detail artikel');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateArticleRequest $request, Article $article): JsonResponse
     {
-        $request->validate([
-            'title' => 'string|max:255',
-            'content' => 'string',
-            'is_published' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $article = Article::findOrFail($id);
-        
-        $data = $request->only(['title', 'content', 'is_published']);
-        if ($request->has('title') && $request->title !== $article->title) {
-            $data['slug'] = Str::slug($request->title) . '-' . time();
-        }
-        
+        $data = collect($request->validated())->except('image')->all();
         $article->update($data);
 
         if ($request->hasFile('image')) {
@@ -66,12 +48,11 @@ class ArticleController extends Controller
             $article->addMediaFromRequest('image')->toMediaCollection('cover_image');
         }
 
-        return $this->success($article, 'Artikel berhasil diperbarui');
+        return $this->success($article->refresh(), 'Artikel berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Article $article): JsonResponse
     {
-        $article = Article::findOrFail($id);
         $article->clearMediaCollection('cover_image');
         $article->delete();
 

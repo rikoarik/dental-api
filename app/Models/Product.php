@@ -2,31 +2,22 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesUniqueSlug;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Product extends Model implements HasMedia
 {
+    use GeneratesUniqueSlug;
     use InteractsWithMedia;
 
     protected $fillable = ['name', 'slug', 'description', 'usage_instructions', 'dosage', 'is_active'];
 
-    protected static function boot()
+    public function getProductImageUrlAttribute(): string
     {
-        parent::boot();
-        static::creating(function ($model) {
-            if (empty($model->slug)) {
-                $model->slug = Str::slug($model->name) . '-' . time();
-            }
-        });
+        return $this->getFirstMediaUrl('product_image');
     }
 
-    public function getCoverImageUrlAttribute()
-    {
-        return $this->getFirstMediaUrl('cover_image');
-    }
-
-    protected $appends = ['cover_image_url'];
+    protected $appends = ['product_image_url'];
 }

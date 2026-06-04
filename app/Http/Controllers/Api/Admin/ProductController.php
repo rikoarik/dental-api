@@ -3,66 +3,44 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Product\StoreProductRequest;
+use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Product;
 use App\Traits\ApiResponser;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return $this->success(Product::latest()->get(), 'Data katalog obat berhasil dimuat');
+        return $this->success(
+            Product::latest()->paginate(15),
+            'Data katalog obat berhasil dimuat'
+        );
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'usage_instructions' => 'nullable|string',
-            'dosage' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $data = $request->only(['name', 'description', 'usage_instructions', 'dosage', 'is_active']);
-        $data['slug'] = Str::slug($request->name) . '-' . time();
+        $data = collect($request->validated())->except('image')->all();
         $product = Product::create($data);
 
         if ($request->hasFile('image')) {
             $product->addMediaFromRequest('image')->toMediaCollection('product_image');
         }
 
-        return $this->success($product, 'Katalog obat berhasil dibuat', 201);
+        return $this->success($product->refresh(), 'Katalog obat berhasil dibuat', 201);
     }
 
-    public function show($id)
+    public function show(Product $product): JsonResponse
     {
-        $product = Product::findOrFail($id);
         return $this->success($product, 'Detail katalog obat');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateProductRequest $request, Product $product): JsonResponse
     {
-        $request->validate([
-            'name' => 'string|max:255',
-            'description' => 'nullable|string',
-            'usage_instructions' => 'nullable|string',
-            'dosage' => 'nullable|string|max:255',
-            'is_active' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $product = Product::findOrFail($id);
-        
-        $data = $request->only(['name', 'description', 'usage_instructions', 'dosage', 'is_active']);
-        if ($request->has('name') && $request->name !== $product->name) {
-            $data['slug'] = Str::slug($request->name) . '-' . time();
-        }
-        
+        $data = collect($request->validated())->except('image')->all();
         $product->update($data);
 
         if ($request->hasFile('image')) {
@@ -70,12 +48,11 @@ class ProductController extends Controller
             $product->addMediaFromRequest('image')->toMediaCollection('product_image');
         }
 
-        return $this->success($product, 'Katalog obat berhasil diperbarui');
+        return $this->success($product->refresh(), 'Katalog obat berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Product $product): JsonResponse
     {
-        $product = Product::findOrFail($id);
         $product->clearMediaCollection('product_image');
         $product->delete();
 

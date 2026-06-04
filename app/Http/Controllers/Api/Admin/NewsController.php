@@ -3,62 +3,44 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\News\StoreNewsRequest;
+use App\Http\Requests\Admin\News\UpdateNewsRequest;
 use App\Models\News;
 use App\Traits\ApiResponser;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 
 class NewsController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return $this->success(News::latest()->get(), 'Data berita berhasil dimuat');
+        return $this->success(
+            News::latest()->paginate(15),
+            'Data berita berhasil dimuat'
+        );
     }
 
-    public function store(Request $request)
+    public function store(StoreNewsRequest $request): JsonResponse
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'is_published' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $data = $request->only(['title', 'content', 'is_published']);
-        $data['slug'] = Str::slug($request->title) . '-' . time();
+        $data = collect($request->validated())->except('image')->all();
         $news = News::create($data);
 
         if ($request->hasFile('image')) {
             $news->addMediaFromRequest('image')->toMediaCollection('cover_image');
         }
 
-        return $this->success($news, 'Berita berhasil dibuat', 201);
+        return $this->success($news->refresh(), 'Berita berhasil dibuat', 201);
     }
 
-    public function show($id)
+    public function show(News $news): JsonResponse
     {
-        $news = News::findOrFail($id);
         return $this->success($news, 'Detail berita');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateNewsRequest $request, News $news): JsonResponse
     {
-        $request->validate([
-            'title' => 'string|max:255',
-            'content' => 'string',
-            'is_published' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $news = News::findOrFail($id);
-        
-        $data = $request->only(['title', 'content', 'is_published']);
-        if ($request->has('title') && $request->title !== $news->title) {
-            $data['slug'] = Str::slug($request->title) . '-' . time();
-        }
-        
+        $data = collect($request->validated())->except('image')->all();
         $news->update($data);
 
         if ($request->hasFile('image')) {
@@ -66,12 +48,11 @@ class NewsController extends Controller
             $news->addMediaFromRequest('image')->toMediaCollection('cover_image');
         }
 
-        return $this->success($news, 'Berita berhasil diperbarui');
+        return $this->success($news->refresh(), 'Berita berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(News $news): JsonResponse
     {
-        $news = News::findOrFail($id);
         $news->clearMediaCollection('cover_image');
         $news->delete();
 

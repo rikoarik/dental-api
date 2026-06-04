@@ -3,53 +3,45 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\Tip\StoreTipRequest;
+use App\Http\Requests\Admin\Tip\UpdateTipRequest;
 use App\Models\Tip;
 use App\Traits\ApiResponser;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class TipController extends Controller
 {
     use ApiResponser;
 
-    public function index()
+    public function index(): JsonResponse
     {
-        return $this->success(Tip::latest()->get(), 'Data tip harian berhasil dimuat');
+        return $this->success(
+            Tip::latest()->paginate(15),
+            'Data tip harian berhasil dimuat'
+        );
     }
 
-    public function store(Request $request)
+    public function store(StoreTipRequest $request): JsonResponse
     {
-        $request->validate([
-            'content' => 'required|string',
-            'is_active' => 'boolean',
-        ]);
-
-        $tip = Tip::create($request->only(['content', 'is_active']));
+        $tip = Tip::create($request->validated());
 
         return $this->success($tip, 'Tip harian berhasil dibuat', 201);
     }
 
-    public function show($id)
+    public function show(Tip $tip): JsonResponse
     {
-        $tip = Tip::findOrFail($id);
         return $this->success($tip, 'Detail tip harian');
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateTipRequest $request, Tip $tip): JsonResponse
     {
-        $request->validate([
-            'content' => 'string',
-            'is_active' => 'boolean',
-        ]);
-
-        $tip = Tip::findOrFail($id);
-        $tip->update($request->only(['content', 'is_active']));
+        $tip->update($request->validated());
 
         return $this->success($tip, 'Tip harian berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Tip $tip): JsonResponse
     {
-        $tip = Tip::findOrFail($id);
         $tip->delete();
 
         return $this->success(null, 'Tip harian berhasil dihapus');
