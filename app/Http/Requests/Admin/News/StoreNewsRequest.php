@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin\News;
 
+use App\Enums\ContentCategory;
 use App\Http\Requests\Concerns\ValidatesImage;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreNewsRequest extends FormRequest
 {
@@ -18,6 +20,8 @@ class StoreNewsRequest extends FormRequest
     {
         return array_merge([
             'title' => ['required', 'string', 'max:255'],
+            'category' => ['sometimes', Rule::enum(ContentCategory::class)],
+            'summary' => ['nullable', 'string'],
             'content' => ['required', 'string'],
             'is_published' => ['sometimes', 'boolean'],
         ], $this->imageRules(required: false));

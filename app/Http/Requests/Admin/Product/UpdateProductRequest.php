@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin\Product;
 
+use App\Enums\ProductCategory;
 use App\Http\Requests\Concerns\ValidatesImage;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -18,8 +20,12 @@ class UpdateProductRequest extends FormRequest
     {
         return array_merge([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'category' => ['sometimes', Rule::enum(ProductCategory::class)],
             'description' => ['nullable', 'string'],
+            'benefits' => ['nullable', 'array'],
+            'benefits.*' => ['string'],
             'usage_instructions' => ['nullable', 'string'],
+            'doctor_tips' => ['nullable', 'string'],
             'dosage' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
         ], $this->imageRules(required: false));

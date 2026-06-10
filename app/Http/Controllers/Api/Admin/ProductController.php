@@ -2,21 +2,27 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Http\Controllers\Api\Admin\Concerns\HandlesAdminListing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Product\StoreProductRequest;
 use App\Http\Requests\Admin\Product\UpdateProductRequest;
 use App\Models\Product;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
     use ApiResponser;
+    use HandlesAdminListing;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $query = Product::latest();
+        $this->applyActiveFilter($query, $request);
+
         return $this->success(
-            Product::latest()->paginate(15),
+            $this->resolvePagination($query, $request),
             'Data katalog obat berhasil dimuat'
         );
     }

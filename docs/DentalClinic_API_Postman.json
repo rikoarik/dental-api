@@ -10,27 +10,65 @@
 			"name": "Public API (Guest)",
 			"item": [
 				{
-					"name": "Get Home Data",
+					"name": "Get Banners",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Accept",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/v1/public/home",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"v1",
-								"public",
-								"home"
-							]
-						}
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/banners", "host": ["{{base_url}}"], "path": ["v1", "public", "banners"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get News List",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/news?limit=3", "host": ["{{base_url}}"], "path": ["v1", "public", "news"], "query": [{"key": "limit", "value": "3"}]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get News Detail",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/news/sample-slug", "host": ["{{base_url}}"], "path": ["v1", "public", "news", "sample-slug"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Articles List",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/articles?sort=popular&limit=5", "host": ["{{base_url}}"], "path": ["v1", "public", "articles"], "query": [{"key": "sort", "value": "popular"}, {"key": "limit", "value": "5"}]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products List",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/products", "host": ["{{base_url}}"], "path": ["v1", "public", "products"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tip Today",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/tips/today", "host": ["{{base_url}}"], "path": ["v1", "public", "tips", "today"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get FAQs",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/faqs", "host": ["{{base_url}}"], "path": ["v1", "public", "faqs"]}
 					},
 					"response": []
 				},
@@ -111,6 +149,49 @@
 								"like"
 							]
 						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Public User Auth",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"body": {"mode": "raw", "raw": "{\n  \"name\": \"Sarah Aulia\",\n  \"email\": \"sarah@test.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}", "options": {"raw": {"language": "json"}}},
+						"url": {"raw": "{{base_url}}/v1/public/auth/register", "host": ["{{base_url}}"], "path": ["v1", "public", "auth", "register"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Login User",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}],
+						"body": {"mode": "raw", "raw": "{\n  \"email\": \"sarah@test.com\",\n  \"password\": \"password123\"\n}", "options": {"raw": {"language": "json"}}},
+						"url": {"raw": "{{base_url}}/v1/public/auth/login", "host": ["{{base_url}}"], "path": ["v1", "public", "auth", "login"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}, {"key": "Authorization", "value": "Bearer {{user_token}}", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/auth/profile", "host": ["{{base_url}}"], "path": ["v1", "public", "auth", "profile"]}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bookmarks",
+					"request": {
+						"method": "GET",
+						"header": [{"key": "Accept", "value": "application/json", "type": "text"}, {"key": "Authorization", "value": "Bearer {{user_token}}", "type": "text"}],
+						"url": {"raw": "{{base_url}}/v1/public/bookmarks", "host": ["{{base_url}}"], "path": ["v1", "public", "bookmarks"]}
 					},
 					"response": []
 				}
@@ -211,6 +292,18 @@
 								"register"
 							]
 						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{"key": "Accept", "value": "application/json", "type": "text"},
+							{"key": "Authorization", "value": "Bearer {{admin_token}}", "type": "text"}
+						],
+						"url": {"raw": "{{base_url}}/v1/admin/dashboard", "host": ["{{base_url}}"], "path": ["v1", "admin", "dashboard"]}
 					},
 					"response": []
 				},
@@ -371,6 +464,11 @@
 		{
 			"key": "admin_token",
 			"value": "paste_your_token_here",
+			"type": "string"
+		},
+		{
+			"key": "user_token",
+			"value": "paste_your_user_token_here",
 			"type": "string"
 		}
 	]

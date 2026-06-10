@@ -1,202 +1,3976 @@
-openapi: 3.0.0
+openapi: 3.0.3
 info:
-  title: Klinik Gigi API
-  description: Dokumentasi API lengkap (Public, Admin Auth, dan Admin CRUD)
-  version: 1.0.0
+  title: Dental Health API
+  description: "Dokumentasi REST API Dental Health.\n\nSetiap endpoint di bawah memiliki deskripsi, contoh request, dan contoh response sukses/gagal.\n\n**Header wajib:** Accept: application/json\n**Auth:** Bearer token Sanctum (klik Authorize di Swagger UI, masukkan token tanpa prefix Bearer)\n\n**Akun demo:** admin@clinic.com / sarah@clinic.com — password: password"
+  version: 2.2.0
+  contact:
+    name: Dental Health API
 servers:
-  - url: http://127.0.0.1:8000/api
-    description: Local Development Server
 
+tags:
+  -
+    name: Public API
+    description: "Tanpa auth, throttle 60/menit"
+  -
+    name: Public Auth
+    description: "Register & login user"
+  -
+    name: Public Bookmarks
+    description: Butuh token user
+  -
+    name: Admin Auth
+    description: "Login & reset password admin"
+  -
+    name: Admin Dashboard
+    description: Statistik admin
+  -
+    name: Admin Banners
+    description: CRUD banner
+  -
+    name: Admin News
+    description: CRUD berita
+  -
+    name: Admin Articles
+    description: CRUD artikel
+  -
+    name: Admin Products
+    description: CRUD produk
+  -
+    name: Admin Tips
+    description: CRUD tips
+  -
+    name: Admin FAQs
+    description: CRUD FAQ
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-
+      bearerFormat: Sanctum
+      description: "Token dari login. Header: Authorization: Bearer {token}"
+  parameters:
+    SlugParam:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+      example: cara-menyikat-gigi-yang-benar
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 1
+    CategoryContent:
+      name: category
+      in: query
+      schema:
+        type: string
+        enum:
+          - kesehatan_gigi
+          - teknologi
+          - klinik
+          - edukasi
+          - umum
+    CategoryProduct:
+      name: category
+      in: query
+      schema:
+        type: string
+        enum:
+          - perawatan_gigi
+          - produk_gigi
+          - tips_perawatan
+    SearchParam:
+      name: search
+      in: query
+      schema:
+        type: string
+      example: gigi
+    LimitParam:
+      name: limit
+      in: query
+      description: Max 20. Response data jadi array.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 20
+        example: 5
+    PageParam:
+      name: page
+      in: query
+      description: "Aktifkan pagination. Tanpa ini, response data = array."
+      schema:
+        type: integer
+        minimum: 1
+        example: 1
+    PerPageParam:
+      name: per_page
+      in: query
+      description: "Item per halaman saat pakai page (1-50, default 15)."
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        example: 15
+    SortParam:
+      name: sort
+      in: query
+      schema:
+        type: string
+        enum:
+          - latest
+          - popular
+        default: latest
+  schemas:
+    JSendError:
+      type: object
+      required:
+        - status
+        - message
+        - data
+      properties:
+        status:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+    ValidationErrorData:
+      type: object
+      properties:
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    Banner:
+      type: object
+    Tip:
+      type: object
+    News:
+      type: object
+    Article:
+      type: object
+    Product:
+      type: object
+    Faq:
+      type: object
+    User:
+      type: object
+    Pagination:
+      type: object
+    DashboardData:
+      type: object
 paths:
-  /v1/public/home:
+  /v1/public/banners:
     get:
-      summary: Dapatkan data Home (Banners, News, Articles, Tip)
-      tags: [Public API]
+      tags:
+        - Public API
+      summary: List banner aktif
+      description: "Menampilkan banner untuk halaman Beranda aplikasi.\n\n**Auth:** Tidak perlu.\n**Filter:** Hanya `is_active = true`.\n**Urutan:** Terbaru dulu.\n**Rate limit:** 60 request/menit per IP."
+      operationId: publicBannersIndex
       responses:
-        '200':
-          description: OK
-
-  /v1/public/articles/{slug}:
+        200:
+          description: 200 OK — Banner aktif berhasil dimuat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Banner"
+              example:
+                status: true
+                message: Data banner berhasil dimuat.
+                data:
+                  -
+                    id: 1
+                    title: Promo Pemeriksaan Gigi Gratis
+                    subtitle: Cek kesehatan gigi Anda bulan ini
+                    tag: promo
+                    link_url: null
+                    is_active: true
+                    image_url: "https://example.com/storage/8/banner-1.jpg"
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+        429:
+          description: 429 Too Many Requests — Lebih dari 60 request per menit ke grup /public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/tips/today:
     get:
-      summary: Dapatkan detail Artikel & tambah view_count
-      tags: [Public API]
-      parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+      tags:
+        - Public API
+      summary: Tips aktif hari ini
+      description: "Menampilkan satu tips harian yang sedang aktif (`is_active = true`).\n\n**Auth:** Tidak perlu.\n**Catatan:** Jika tidak ada tip aktif, response 404."
+      operationId: publicTipsToday
       responses:
-        '200':
-          description: OK
-
-  /v1/public/articles/{slug}/like:
-    post:
-      summary: Tambah like_count pada Artikel
-      tags: [Public API]
+        200:
+          description: 200 OK — Tip hari ini ditemukan
+          content:
+            application/json:
+              example:
+                status: true
+                message: Tips hari ini berhasil dimuat.
+                data:
+                  id: 1
+                  content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                  is_active: true
+                  image_url: "https://example.com/storage/1/tip-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        404:
+          description: 404 Not Found — Belum ada record tip dengan is_active=true
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Tips hari ini belum tersedia.
+                data: null
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/news:
+    get:
+      tags:
+        - Public API
+      summary: List berita published
+      description: "Daftar berita untuk tab Berita.\n\n**Auth:** Tidak perlu.\n**Filter:** `is_published = true`.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)\n\n**Alternatif tanpa pagination:**\n- `limit` — ambil N item sebagai array (max 20), tanpa perlu `page`"
+      operationId: publicNewsIndex
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        -
+          $ref: "#/components/parameters/CategoryContent"
+        -
+          $ref: "#/components/parameters/SearchParam"
+        -
+          $ref: "#/components/parameters/LimitParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
       responses:
-        '200':
-          description: OK
-
+        200:
+          description: 200 OK — Berita berhasil dimuat
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data berita berhasil dimuat.
+                    data:
+                      -
+                        id: 1
+                        title: Teknologi AI dalam Diagnosa Gigi
+                        slug: teknologi-ai-dalam-diagnosa-gigi
+                        category: teknologi
+                        summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                        content: "<p>Konten berita lengkap dalam HTML.</p>"
+                        view_count: 42
+                        like_count: 7
+                        is_published: true
+                        cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data berita berhasil dimuat.
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Teknologi AI dalam Diagnosa Gigi
+                          slug: teknologi-ai-dalam-diagnosa-gigi
+                          category: teknologi
+                          summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                          content: "<p>Konten berita lengkap dalam HTML.</p>"
+                          view_count: 42
+                          like_count: 7
+                          is_published: true
+                          cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/news/{slug}:
+    get:
+      tags:
+        - Public API
+      summary: Detail berita
+      description: "Detail berita by slug. **`view_count` otomatis +1** setiap kali dibuka.\n\n**Auth:** Tidak perlu.\n**404:** Slug tidak ada atau berita draft."
+      operationId: publicNewsShow
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        200:
+          description: 200 OK — Detail berita
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail berita.
+                data:
+                  id: 1
+                  title: Teknologi AI dalam Diagnosa Gigi
+                  slug: teknologi-ai-dalam-diagnosa-gigi
+                  category: teknologi
+                  summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                  content: "<p>Konten berita lengkap dalam HTML.</p>"
+                  view_count: 42
+                  like_count: 7
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        404:
+          description: 404 Not Found — Slug tidak ditemukan atau is_published=false
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
   /v1/public/news/{id}/like:
     post:
-      summary: Tambah like_count pada Berita
-      tags: [Public API]
+      tags:
+        - Public API
+      summary: Like berita
+      description: "Menambah `like_count` berita +1.\n\n**Auth:** Tidak perlu.\n**Path param:** `id` (integer, bukan slug).\n**Rate limit:** 20 request/menit."
+      operationId: publicNewsLike
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
+        -
+          $ref: "#/components/parameters/IdParam"
       responses:
-        '200':
-          description: OK
-  
-  /v1/admin/login:
+        200:
+          description: 200 OK — Like tercatat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Berita berhasil disukai.
+                data: null
+        404:
+          description: 404 Not Found — ID berita tidak ada atau belum published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        429:
+          description: 429 Too Many Requests — Spam like — max 20/menit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/articles:
+    get:
+      tags:
+        - Public API
+      summary: List artikel published
+      description: "Daftar artikel edukasi.\n\n**Auth:** Tidak perlu.\n**Sort:** `popular` atau `latest` (default)\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)\n\n**Alternatif tanpa pagination:**\n- `limit` — ambil N item sebagai array (max 20), tanpa perlu `page`"
+      operationId: publicArticlesIndex
+      parameters:
+        -
+          $ref: "#/components/parameters/SortParam"
+        -
+          $ref: "#/components/parameters/CategoryContent"
+        -
+          $ref: "#/components/parameters/SearchParam"
+        -
+          $ref: "#/components/parameters/LimitParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — Artikel berhasil dimuat
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data artikel berhasil dimuat.
+                    data:
+                      -
+                        id: 1
+                        title: Cara Menyikat Gigi yang Benar
+                        slug: cara-menyikat-gigi-yang-benar
+                        category: edukasi
+                        content: "<p>Edukasi artikel dalam HTML.</p>"
+                        view_count: 120
+                        like_count: 15
+                        is_published: true
+                        cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data artikel berhasil dimuat.
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Cara Menyikat Gigi yang Benar
+                          slug: cara-menyikat-gigi-yang-benar
+                          category: edukasi
+                          content: "<p>Edukasi artikel dalam HTML.</p>"
+                          view_count: 120
+                          like_count: 15
+                          is_published: true
+                          cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/articles/{slug}:
+    get:
+      tags:
+        - Public API
+      summary: Detail artikel
+      description: "Detail artikel by slug. **`view_count` +1** per kunjungan.\n\n**Auth:** Tidak perlu."
+      operationId: publicArticlesShow
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        200:
+          description: 200 OK — Detail artikel
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail artikel.
+                data:
+                  id: 1
+                  title: Cara Menyikat Gigi yang Benar
+                  slug: cara-menyikat-gigi-yang-benar
+                  category: edukasi
+                  content: "<p>Edukasi artikel dalam HTML.</p>"
+                  view_count: 120
+                  like_count: 15
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        404:
+          description: 404 Not Found — Slug artikel tidak ada atau draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/articles/{slug}/like:
     post:
-      summary: Login Admin
-      tags: [Admin Auth]
+      tags:
+        - Public API
+      summary: Like artikel
+      description: "Menambah `like_count` artikel +1.\n\n**Auth:** Tidak perlu.\n**Rate limit:** 20/menit."
+      operationId: publicArticlesLike
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        200:
+          description: 200 OK — Like artikel
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil disukai.
+                data: null
+        404:
+          description: 404 Not Found — Slug artikel tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        429:
+          description: 429 Too Many Requests — Spam like artikel
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/products:
+    get:
+      tags:
+        - Public API
+      summary: List produk aktif
+      description: "Katalog produk/perawatan.\n\n**Auth:** Tidak perlu.\n**Filter:** `is_active = true`.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)\n\n**Alternatif tanpa pagination:**\n- `limit` — ambil N item sebagai array (max 20), tanpa perlu `page`"
+      operationId: publicProductsIndex
+      parameters:
+        -
+          $ref: "#/components/parameters/CategoryProduct"
+        -
+          $ref: "#/components/parameters/LimitParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — Produk berhasil dimuat
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data produk berhasil dimuat.
+                    data:
+                      -
+                        id: 1
+                        name: Pasta Gigi Sensitif Pro
+                        slug: pasta-gigi-sensitif-pro
+                        category: produk_gigi
+                        description: Pasta gigi untuk gigi sensitif.
+                        benefits:
+                          - Meredakan sensitif
+                          - Melindungi enamel
+                        usage_instructions: Sikat 2 menit setelah makan.
+                        doctor_tips: Gunakan sikat lembut.
+                        dosage: null
+                        is_active: true
+                        product_image_url: "https://example.com/storage/5/product-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data produk berhasil dimuat.
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          name: Pasta Gigi Sensitif Pro
+                          slug: pasta-gigi-sensitif-pro
+                          category: produk_gigi
+                          description: Pasta gigi untuk gigi sensitif.
+                          benefits:
+                            - Meredakan sensitif
+                            - Melindungi enamel
+                          usage_instructions: Sikat 2 menit setelah makan.
+                          doctor_tips: Gunakan sikat lembut.
+                          dosage: null
+                          is_active: true
+                          product_image_url: "https://example.com/storage/5/product-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/products/{slug}:
+    get:
+      tags:
+        - Public API
+      summary: Detail produk + artikel terkait
+      description: "Detail produk dan 3 artikel populer terkait.\n\n**Auth:** Tidak perlu.\n**Response data:** `{ product, related_articles }`"
+      operationId: publicProductsShow
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        200:
+          description: 200 OK — Detail produk
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail produk.
+                data:
+                  product:
+                    id: 1
+                    name: Pasta Gigi Sensitif Pro
+                    slug: pasta-gigi-sensitif-pro
+                    category: produk_gigi
+                    description: Pasta gigi untuk gigi sensitif.
+                    benefits:
+                      - Meredakan sensitif
+                      - Melindungi enamel
+                    usage_instructions: Sikat 2 menit setelah makan.
+                    doctor_tips: Gunakan sikat lembut.
+                    dosage: null
+                    is_active: true
+                    product_image_url: "https://example.com/storage/5/product-1.jpg"
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+                  related_articles:
+                    -
+                      id: 1
+                      title: Cara Menyikat Gigi yang Benar
+                      slug: cara-menyikat-gigi-yang-benar
+                      category: edukasi
+                      content: "<p>Edukasi artikel dalam HTML.</p>"
+                      view_count: 120
+                      like_count: 15
+                      is_published: true
+                      cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                      created_at: "2026-06-07T04:28:06.000000Z"
+                      updated_at: "2026-06-07T04:28:06.000000Z"
+        404:
+          description: 404 Not Found — Slug produk tidak ada atau inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/faqs:
+    get:
+      tags:
+        - Public API
+      summary: List FAQ aktif
+      description: "FAQ untuk halaman bantuan.\n\n**Auth:** Tidak perlu.\n**Filter:** `is_active = true`, urut `sort_order`."
+      operationId: publicFaqsIndex
+      responses:
+        200:
+          description: 200 OK — FAQ berhasil dimuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Data FAQ berhasil dimuat.
+                data:
+                  -
+                    id: 1
+                    question: Berapa kali sehari harus sikat gigi?
+                    answer: "Minimal 2 kali sehari, pagi dan malam."
+                    sort_order: 1
+                    is_active: true
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+        429:
+          description: 429 Too Many Requests — Throttle grup public
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/auth/register:
+    post:
+      tags:
+        - Public Auth
+      summary: Daftar akun user
+      description: "Registrasi pengguna baru dengan role `user`.\n\n**Auth:** Tidak perlu.\n**Body:** JSON\n**Rate limit:** 5/menit.\n**Response:** Langsung return token (auto-login)."
+      operationId: publicAuthRegister
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
               properties:
-                email: { type: string }
-                password: { type: string }
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+            example:
+              name: Budi Santoso
+              email: "budi@email.com"
+              password: password
+              password_confirmation: password
       responses:
-        '200':
-          description: OK
-
+        201:
+          description: 201 Created — Registrasi sukses
+          content:
+            application/json:
+              example:
+                status: true
+                message: Registrasi berhasil
+                data:
+                  user:
+                    id: 2
+                    name: Sarah Aulia
+                    email: "sarah@clinic.com"
+                    avatar_url: "https://example.com/storage/10/avatar.jpg"
+                    email_verified_at: null
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+                  token: "2|newtoken..."
+        422:
+          description: 422 Unprocessable Entity — Email duplikat atau password tidak valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email sudah terdaftar.
+                    password:
+                      - Password minimal 8 karakter.
+                      - Konfirmasi password tidak cocok.
+        429:
+          description: 429 Too Many Requests — Max 5 register per menit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/auth/login:
+    post:
+      tags:
+        - Public Auth
+      summary: Login user
+      description: "Login akun dengan role `user` saja.\n\n**Auth:** Tidak perlu.\n**Rate limit:** 5/menit.\n**403:** Jika pakai akun admin di endpoint ini."
+      operationId: publicAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            example:
+              email: "sarah@clinic.com"
+              password: password
+      responses:
+        200:
+          description: 200 OK — Login user sukses
+          content:
+            application/json:
+              example:
+                status: true
+                message: Login berhasil
+                data:
+                  user:
+                    id: 2
+                    name: Sarah Aulia
+                    email: "sarah@clinic.com"
+                    avatar_url: "https://example.com/storage/10/avatar.jpg"
+                    email_verified_at: null
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+                  token: "1|abc..."
+        401:
+          description: 401 Unauthorized — Kredensial salah
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Email atau password salah
+                data: null
+        403:
+          description: "403 Forbidden — admin@clinic.com tidak bisa login via endpoint user"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Akun ini bukan akun pengguna.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Field kosong
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email wajib diisi.
+                    password:
+                      - Password wajib diisi.
+        429:
+          description: 429 Too Many Requests — Max 5 login per menit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/public/auth/logout:
+    post:
+      tags:
+        - Public Auth
+      summary: Logout user
+      description: "Menghapus token Sanctum yang sedang dipakai.\n\n**Auth:** Bearer token user."
+      operationId: publicAuthLogout
+      security:
+        -
+          bearerAuth:
+      responses:
+        200:
+          description: 200 OK — Logout sukses
+          content:
+            application/json:
+              example:
+                status: true
+                message: Logout berhasil
+                data: null
+        401:
+          description: 401 Unauthorized — Header Authorization tidak ada atau token expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+  /v1/public/auth/profile:
+    get:
+      tags:
+        - Public Auth
+      summary: Lihat profil user
+      description: "Mengambil data profil user yang sedang login.\n\n**Auth:** Bearer token user."
+      operationId: publicAuthProfileGet
+      security:
+        -
+          bearerAuth:
+      responses:
+        200:
+          description: 200 OK — Profil user
+          content:
+            application/json:
+              example:
+                status: true
+                message: Profil berhasil dimuat
+                data:
+                  id: 2
+                  name: Sarah Aulia
+                  email: "sarah@clinic.com"
+                  avatar_url: "https://example.com/storage/10/avatar.jpg"
+                  email_verified_at: null
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Token tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+    put:
+      tags:
+        - Public Auth
+      summary: Update profil user
+      description: "Update nama, email, password, atau avatar.\n\n**Auth:** Bearer token user.\n**Content-Type:** multipart/form-data\n**Catatan:** Password hanya diubah jika field `password` diisi."
+      operationId: publicAuthProfileUpdate
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        200:
+          description: 200 OK — Profil diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Profil berhasil diperbarui
+                data:
+                  id: 2
+                  name: Sarah Aulia
+                  email: "sarah@clinic.com"
+                  avatar_url: "https://example.com/storage/10/avatar.jpg"
+                  email_verified_at: null
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Token tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi profil gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email sudah terdaftar.
+                    password:
+                      - Konfirmasi password tidak cocok.
+                    avatar:
+                      - Avatar harus berupa gambar jpeg/png/jpg/gif max 2MB.
+  /v1/public/bookmarks:
+    get:
+      tags:
+        - Public Bookmarks
+      summary: List artikel tersimpan
+      description: "Artikel yang di-bookmark user.\n\n**Auth:** Bearer token user.\n**Filter:** Hanya artikel published.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: publicBookmarksIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — Bookmark dimuat
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Artikel tersimpan berhasil dimuat.
+                    data:
+                      -
+                        id: 1
+                        title: Cara Menyikat Gigi yang Benar
+                        slug: cara-menyikat-gigi-yang-benar
+                        category: edukasi
+                        content: "<p>Edukasi artikel dalam HTML.</p>"
+                        view_count: 120
+                        like_count: 15
+                        is_published: true
+                        cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Artikel tersimpan berhasil dimuat.
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Cara Menyikat Gigi yang Benar
+                          slug: cara-menyikat-gigi-yang-benar
+                          category: edukasi
+                          content: "<p>Edukasi artikel dalam HTML.</p>"
+                          view_count: 120
+                          like_count: 15
+                          is_published: true
+                          cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Harus login sebagai user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+  /v1/public/bookmarks/{slug}:
+    post:
+      tags:
+        - Public Bookmarks
+      summary: Simpan artikel
+      description: "Menambah artikel ke bookmark (idempotent — tidak error jika sudah ada).\n\n**Auth:** Bearer token user."
+      operationId: publicBookmarksStore
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        201:
+          description: 201 Created — Artikel disimpan
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil disimpan.
+                data: null
+        401:
+          description: 401 Unauthorized — Harus login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        404:
+          description: 404 Not Found — Slug artikel tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    delete:
+      tags:
+        - Public Bookmarks
+      summary: Hapus bookmark
+      description: "Menghapus artikel dari daftar simpanan user.\n\n**Auth:** Bearer token user."
+      operationId: publicBookmarksDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/SlugParam"
+      responses:
+        200:
+          description: 200 OK — Bookmark dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil dihapus dari simpanan.
+                data: null
+        401:
+          description: 401 Unauthorized — Harus login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        404:
+          description: 404 Not Found — Artikel tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+  /v1/admin/login:
+    post:
+      tags:
+        - Admin Auth
+      summary: Login admin
+      description: "Login khusus akun role `admin`.\n\n**Auth:** Tidak perlu.\n**Rate limit:** 5/menit."
+      operationId: adminAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+            example:
+              email: "admin@clinic.com"
+              password: password
+      responses:
+        200:
+          description: 200 OK — Login admin sukses
+          content:
+            application/json:
+              example:
+                status: true
+                message: Login berhasil
+                data:
+                  user:
+                    id: 2
+                    name: Sarah Aulia
+                    email: "admin@clinic.com"
+                    avatar_url: "https://example.com/storage/10/avatar.jpg"
+                    email_verified_at: null
+                    created_at: "2026-06-07T04:28:06.000000Z"
+                    updated_at: "2026-06-07T04:28:06.000000Z"
+                  token: "3|admin..."
+        401:
+          description: 401 Unauthorized — Kredensial admin salah
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Email atau password salah
+                data: null
+        403:
+          description: "403 Forbidden — sarah@clinic.com tidak bisa login admin"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Akun ini bukan akun admin.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email wajib diisi.
+        429:
+          description: 429 Too Many Requests — Max 5 login admin per menit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Terlalu banyak permintaan. Coba lagi nanti.
+                data: null
+  /v1/admin/register:
+    post:
+      tags:
+        - Admin Auth
+      summary: Daftarkan admin baru
+      description: "Membuat akun admin baru. Hanya admin yang sudah login yang boleh akses.\n\n**Auth:** Bearer token admin."
+      operationId: adminAuthRegister
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+      responses:
+        201:
+          description: 201 Created — Admin baru
+          content:
+            application/json:
+              example:
+                status: true
+                message: Admin baru berhasil didaftarkan
+                data:
+                  id: 2
+                  name: Sarah Aulia
+                  email: "admin2@clinic.com"
+                  avatar_url: "https://example.com/storage/10/avatar.jpg"
+                  email_verified_at: null
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Data registrasi admin tidak valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email sudah terdaftar.
+  /v1/admin/logout:
+    post:
+      tags:
+        - Admin Auth
+      summary: Logout admin
+      description: "Hapus token admin aktif.\n\n**Auth:** Bearer token admin."
+      operationId: adminAuthLogout
+      security:
+        -
+          bearerAuth:
+      responses:
+        200:
+          description: 200 OK — Logout admin
+          content:
+            application/json:
+              example:
+                status: true
+                message: Logout berhasil
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+  /v1/admin/profile:
+    get:
+      tags:
+        - Admin Auth
+      summary: Profil admin
+      description: "Data profil admin yang sedang login.\n\n**Auth:** Bearer token admin."
+      operationId: adminAuthProfile
+      security:
+        -
+          bearerAuth:
+      responses:
+        200:
+          description: 200 OK — Profil admin
+          content:
+            application/json:
+              example:
+                status: true
+                message: Profil berhasil dimuat
+                data:
+                  id: 2
+                  name: Sarah Aulia
+                  email: "admin@clinic.com"
+                  avatar_url: "https://example.com/storage/10/avatar.jpg"
+                  email_verified_at: null
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+  /v1/admin/forgot-password:
+    post:
+      tags:
+        - Admin Auth
+      summary: Kirim link reset password
+      description: "Mengirim email reset password ke admin.\n\n**Auth:** Tidak perlu."
+      operationId: adminForgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: "admin@clinic.com"
+      responses:
+        200:
+          description: 200 OK — Email terkirim
+          content:
+            application/json:
+              example:
+                status: true
+                message: We have emailed your password reset link.
+                data: null
+        400:
+          description: 400 Bad Request — Email tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: We can't find a user with that email address.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Format email tidak valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    email:
+                      - Email wajib diisi.
+  /v1/admin/reset-password:
+    post:
+      tags:
+        - Admin Auth
+      summary: Reset password
+      description: "Reset password admin menggunakan token dari email.\n\n**Auth:** Tidak perlu."
+      operationId: adminResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - password_confirmation
+                - token
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+                token:
+                  type: string
+      responses:
+        200:
+          description: 200 OK — Password direset
+          content:
+            application/json:
+              example:
+                status: true
+                message: Your password has been reset.
+                data: null
+        400:
+          description: 400 Bad Request — Token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: This password reset token is invalid.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi reset password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    password:
+                      - Konfirmasi password tidak cocok.
+  /v1/admin/dashboard:
+    get:
+      tags:
+        - Admin Dashboard
+      summary: Statistik dashboard
+      description: "Ringkasan jumlah konten dan 5 konten terbaru.\n\n**Auth:** Bearer token admin."
+      operationId: adminDashboard
+      security:
+        -
+          bearerAuth:
+      responses:
+        200:
+          description: 200 OK — Dashboard
+          content:
+            application/json:
+              example:
+                status: true
+                message: Dashboard berhasil dimuat.
+                data:
+                  stats:
+                    news_count: 9
+                    articles_count: 10
+                    products_count: 9
+                    active_admins_count: 1
+                  recent_content:
+                    -
+                      type: news
+                      id: 1
+                      title: Teknologi AI dalam Diagnosa Gigi
+                      is_published: true
+                      created_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
   /v1/admin/banners:
     get:
-      summary: Get all Banners
-      tags: [Admin Banners]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin Banners
+      summary: List semua banner
+      description: "Daftar semua banner (aktif & nonaktif).\n\n**Auth:** Bearer token admin.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminBannersIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
       responses:
-        '200':
-          description: OK
+        200:
+          description: 200 OK — List banner admin
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data banner berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        title: Promo Pemeriksaan Gigi Gratis
+                        subtitle: Cek kesehatan gigi Anda bulan ini
+                        tag: promo
+                        link_url: null
+                        is_active: true
+                        image_url: "https://example.com/storage/8/banner-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data banner berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Promo Pemeriksaan Gigi Gratis
+                          subtitle: Cek kesehatan gigi Anda bulan ini
+                          tag: promo
+                          link_url: null
+                          is_active: true
+                          image_url: "https://example.com/storage/8/banner-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
     post:
-      summary: Create Banner
-      tags: [Admin Banners]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin Banners
+      summary: Buat banner
+      description: "Upload banner baru.\n\n**Auth:** Bearer token admin.\n**Wajib:** title, image\n**Opsional:** subtitle, tag (edukasi/promo/info), link_url, is_active"
+      operationId: adminBannersStore
+      security:
+        -
+          bearerAuth:
       requestBody:
+        required: true
         content:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - title
+                - image
               properties:
-                title: { type: string }
-                link_url: { type: string }
-                is_active: { type: integer, description: "1 or 0" }
-                image: { type: string, format: binary }
+                title:
+                  type: string
+                subtitle:
+                  type: string
+                tag:
+                  type: string
+                  enum:
+                    - edukasi
+                    - promo
+                    - info
+                link_url:
+                  type: string
+                  format: uri
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
-        '201':
-          description: Created
-
+        201:
+          description: 201 Created — Banner dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Banner berhasil dibuat
+                data:
+                  id: 1
+                  title: Promo Pemeriksaan Gigi Gratis
+                  subtitle: Cek kesehatan gigi Anda bulan ini
+                  tag: promo
+                  link_url: null
+                  is_active: true
+                  image_url: "https://example.com/storage/8/banner-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Title kosong atau gambar invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    title:
+                      - Judul wajib diisi.
+                    image:
+                      - Gambar wajib diunggah.
+                    image.0:
+                      - "Gambar harus berupa file jpeg, png, jpg, atau gif."
   /v1/admin/banners/{id}:
     get:
-      summary: Get Banner Details
-      tags: [Admin Banners]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin Banners
+      summary: Detail banner
+      description: "Mengambil detail banner berdasarkan ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminBannersShow
+      security:
+        -
+          bearerAuth:
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
+        -
+          $ref: "#/components/parameters/IdParam"
       responses:
-        '200':
-          description: OK
-    post:
-      summary: Update Banner (Use POST with _method=PUT for multipart/form-data)
-      tags: [Admin Banners]
-      security: [{ bearerAuth: [] }]
+        200:
+          description: 200 OK — Detail banner
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail banner
+                data:
+                  id: 1
+                  title: Promo Pemeriksaan Gigi Gratis
+                  subtitle: Cek kesehatan gigi Anda bulan ini
+                  tag: promo
+                  link_url: null
+                  is_active: true
+                  image_url: "https://example.com/storage/8/banner-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada di database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin Banners
+      summary: Update banner
+      description: "Memperbarui banner. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      operationId: adminBannersUpdate
+      security:
+        -
+          bearerAuth:
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
+        -
+          $ref: "#/components/parameters/IdParam"
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                _method: { type: string, example: "PUT" }
-                title: { type: string }
-                link_url: { type: string }
-                is_active: { type: integer }
-                image: { type: string, format: binary }
+                title:
+                  type: string
+                subtitle:
+                  type: string
+                tag:
+                  type: string
+                link_url:
+                  type: string
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
-        '200':
-          description: OK
+        200:
+          description: 200 OK — banner diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Banner berhasil diperbarui
+                data:
+                  id: 1
+                  title: Promo Pemeriksaan Gigi Gratis
+                  subtitle: Cek kesehatan gigi Anda bulan ini
+                  tag: promo
+                  link_url: null
+                  is_active: true
+                  image_url: "https://example.com/storage/8/banner-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi field gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    link_url:
+                      - Format URL tidak valid.
     delete:
-      summary: Delete Banner
-      tags: [Admin Banners]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin Banners
+      summary: Hapus banner
+      description: "Menghapus banner beserta media terkait (jika ada).\n\n**Auth:** Bearer token admin."
+      operationId: adminBannersDestroy
+      security:
+        -
+          bearerAuth:
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema: { type: integer }
+        -
+          $ref: "#/components/parameters/IdParam"
       responses:
-        '200':
-          description: OK
-
-  # (Pattern is the same for News, Articles, Products, Tips)
+        200:
+          description: 200 OK — banner dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Banner berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
   /v1/admin/news:
     get:
-      summary: Get all News
-      tags: [Admin News]
-      security: [{ bearerAuth: [] }]
-      responses: { '200': { description: OK } }
+      tags:
+        - Admin News
+      summary: List berita
+      description: "Semua berita termasuk draft.\n\n**Auth:** Bearer token admin.\n**Filter:** status, category, search\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminNewsIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - published
+              - draft
+        -
+          $ref: "#/components/parameters/CategoryContent"
+        -
+          $ref: "#/components/parameters/SearchParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — List berita admin
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data berita berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        title: Teknologi AI dalam Diagnosa Gigi
+                        slug: teknologi-ai-dalam-diagnosa-gigi
+                        category: teknologi
+                        summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                        content: "<p>Konten berita lengkap dalam HTML.</p>"
+                        view_count: 42
+                        like_count: 7
+                        is_published: true
+                        cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data berita berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Teknologi AI dalam Diagnosa Gigi
+                          slug: teknologi-ai-dalam-diagnosa-gigi
+                          category: teknologi
+                          summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                          content: "<p>Konten berita lengkap dalam HTML.</p>"
+                          view_count: 42
+                          like_count: 7
+                          is_published: true
+                          cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
     post:
-      summary: Create News
-      tags: [Admin News]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin News
+      summary: Buat berita
+      description: "Buat berita baru. Slug auto-generate dari title.\n\n**Auth:** Bearer token admin.\n**Wajib:** title, content"
+      operationId: adminNewsStore
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                category:
+                  type: string
+                summary:
+                  type: string
+                content:
+                  type: string
+                is_published:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: 201 Created — Berita dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Berita berhasil dibuat
+                data:
+                  id: 1
+                  title: Teknologi AI dalam Diagnosa Gigi
+                  slug: teknologi-ai-dalam-diagnosa-gigi
+                  category: teknologi
+                  summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                  content: "<p>Konten berita lengkap dalam HTML.</p>"
+                  view_count: 42
+                  like_count: 7
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Field wajib berita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    title:
+                      - Judul wajib diisi.
+                    content:
+                      - Konten wajib diisi.
+  /v1/admin/news/{id}:
+    get:
+      tags:
+        - Admin News
+      summary: Detail berita
+      description: "Mengambil detail berita berdasarkan ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminNewsShow
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — Detail berita
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail berita
+                data:
+                  id: 1
+                  title: Teknologi AI dalam Diagnosa Gigi
+                  slug: teknologi-ai-dalam-diagnosa-gigi
+                  category: teknologi
+                  summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                  content: "<p>Konten berita lengkap dalam HTML.</p>"
+                  view_count: 42
+                  like_count: 7
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada di database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin News
+      summary: Update berita
+      description: "Memperbarui berita. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      operationId: adminNewsUpdate
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                title: { type: string }
-                content: { type: string }
-                is_published: { type: integer }
-                image: { type: string, format: binary }
-      responses: { '201': { description: Created } }
-
+                name:
+                  type: string
+      responses:
+        200:
+          description: 200 OK — berita diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Berita berhasil diperbarui
+                data:
+                  id: 1
+                  title: Teknologi AI dalam Diagnosa Gigi
+                  slug: teknologi-ai-dalam-diagnosa-gigi
+                  category: teknologi
+                  summary: AI membantu dokter gigi mendeteksi karies lebih awal.
+                  content: "<p>Konten berita lengkap dalam HTML.</p>"
+                  view_count: 42
+                  like_count: 7
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/2/news-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi field gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    title:
+                      - Judul maksimal 255 karakter.
+    delete:
+      tags:
+        - Admin News
+      summary: Hapus berita
+      description: "Menghapus berita beserta media terkait (jika ada).\n\n**Auth:** Bearer token admin."
+      operationId: adminNewsDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — berita dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Berita berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+  /v1/admin/articles:
+    get:
+      tags:
+        - Admin Articles
+      summary: List artikel
+      description: "Semua artikel termasuk draft.\n\n**Auth:** Bearer token admin.\n**Filter:** status, category, search\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminArticlesIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - published
+              - draft
+        -
+          $ref: "#/components/parameters/CategoryContent"
+        -
+          $ref: "#/components/parameters/SearchParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — List artikel admin
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data artikel berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        title: Cara Menyikat Gigi yang Benar
+                        slug: cara-menyikat-gigi-yang-benar
+                        category: edukasi
+                        content: "<p>Edukasi artikel dalam HTML.</p>"
+                        view_count: 120
+                        like_count: 15
+                        is_published: true
+                        cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data artikel berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          title: Cara Menyikat Gigi yang Benar
+                          slug: cara-menyikat-gigi-yang-benar
+                          category: edukasi
+                          content: "<p>Edukasi artikel dalam HTML.</p>"
+                          view_count: 120
+                          like_count: 15
+                          is_published: true
+                          cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+    post:
+      tags:
+        - Admin Articles
+      summary: Buat artikel
+      description: "Buat artikel edukasi. Slug auto dari title.\n\n**Auth:** Bearer token admin.\n**Wajib:** title, content"
+      operationId: adminArticlesStore
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+              properties:
+                title:
+                  type: string
+                category:
+                  type: string
+                content:
+                  type: string
+                is_published:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: 201 Created — Artikel dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil dibuat
+                data:
+                  id: 1
+                  title: Cara Menyikat Gigi yang Benar
+                  slug: cara-menyikat-gigi-yang-benar
+                  category: edukasi
+                  content: "<p>Edukasi artikel dalam HTML.</p>"
+                  view_count: 120
+                  like_count: 15
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Validasi artikel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    title:
+                      - Judul wajib diisi.
+                    content:
+                      - Konten wajib diisi.
+  /v1/admin/articles/{id}:
+    get:
+      tags:
+        - Admin Articles
+      summary: Detail artikel
+      description: "Mengambil detail artikel berdasarkan ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminArticlesShow
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — Detail artikel
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail artikel
+                data:
+                  id: 1
+                  title: Cara Menyikat Gigi yang Benar
+                  slug: cara-menyikat-gigi-yang-benar
+                  category: edukasi
+                  content: "<p>Edukasi artikel dalam HTML.</p>"
+                  view_count: 120
+                  like_count: 15
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada di database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin Articles
+      summary: Update artikel
+      description: "Memperbarui artikel. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      operationId: adminArticlesUpdate
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        200:
+          description: 200 OK — artikel diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil diperbarui
+                data:
+                  id: 1
+                  title: Cara Menyikat Gigi yang Benar
+                  slug: cara-menyikat-gigi-yang-benar
+                  category: edukasi
+                  content: "<p>Edukasi artikel dalam HTML.</p>"
+                  view_count: 120
+                  like_count: 15
+                  is_published: true
+                  cover_image_url: "https://example.com/storage/3/article-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi field gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    content:
+                      - Konten wajib diisi.
+    delete:
+      tags:
+        - Admin Articles
+      summary: Hapus artikel
+      description: "Menghapus artikel beserta media terkait (jika ada).\n\n**Auth:** Bearer token admin."
+      operationId: adminArticlesDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — artikel dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Artikel berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
   /v1/admin/products:
     get:
-      summary: Get all Products
-      tags: [Admin Products]
-      security: [{ bearerAuth: [] }]
-      responses: { '200': { description: OK } }
+      tags:
+        - Admin Products
+      summary: List produk
+      description: "Semua produk.\n\n**Auth:** Bearer token admin.\n**Filter:** status, category, search\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminProductsIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - active
+              - inactive
+        -
+          $ref: "#/components/parameters/CategoryProduct"
+        -
+          $ref: "#/components/parameters/SearchParam"
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — List produk admin
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data katalog obat berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        name: Pasta Gigi Sensitif Pro
+                        slug: pasta-gigi-sensitif-pro
+                        category: produk_gigi
+                        description: Pasta gigi untuk gigi sensitif.
+                        benefits:
+                          - Meredakan sensitif
+                          - Melindungi enamel
+                        usage_instructions: Sikat 2 menit setelah makan.
+                        doctor_tips: Gunakan sikat lembut.
+                        dosage: null
+                        is_active: true
+                        product_image_url: "https://example.com/storage/5/product-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data katalog obat berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          name: Pasta Gigi Sensitif Pro
+                          slug: pasta-gigi-sensitif-pro
+                          category: produk_gigi
+                          description: Pasta gigi untuk gigi sensitif.
+                          benefits:
+                            - Meredakan sensitif
+                            - Melindungi enamel
+                          usage_instructions: Sikat 2 menit setelah makan.
+                          doctor_tips: Gunakan sikat lembut.
+                          dosage: null
+                          is_active: true
+                          product_image_url: "https://example.com/storage/5/product-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
     post:
-      summary: Create Product
-      tags: [Admin Products]
-      security: [{ bearerAuth: [] }]
+      tags:
+        - Admin Products
+      summary: Buat produk
+      description: "Tambah produk katalog.\n\n**Auth:** Bearer token admin.\n**Wajib:** name\n**Opsional:** benefits (array), usage_instructions, doctor_tips, dosage, image"
+      operationId: adminProductsStore
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                benefits:
+                  type: array
+                  items:
+                    type: string
+                usage_instructions:
+                  type: string
+                doctor_tips:
+                  type: string
+                dosage:
+                  type: string
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: 201 Created — Produk dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Katalog obat berhasil dibuat
+                data:
+                  id: 1
+                  name: Pasta Gigi Sensitif Pro
+                  slug: pasta-gigi-sensitif-pro
+                  category: produk_gigi
+                  description: Pasta gigi untuk gigi sensitif.
+                  benefits:
+                    - Meredakan sensitif
+                    - Melindungi enamel
+                  usage_instructions: Sikat 2 menit setelah makan.
+                  doctor_tips: Gunakan sikat lembut.
+                  dosage: null
+                  is_active: true
+                  product_image_url: "https://example.com/storage/5/product-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Nama produk kosong
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    name:
+                      - Nama wajib diisi.
+  /v1/admin/products/{id}:
+    get:
+      tags:
+        - Admin Products
+      summary: Detail produk
+      description: "Mengambil detail produk berdasarkan ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminProductsShow
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — Detail produk
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail katalog obat
+                data:
+                  id: 1
+                  name: Pasta Gigi Sensitif Pro
+                  slug: pasta-gigi-sensitif-pro
+                  category: produk_gigi
+                  description: Pasta gigi untuk gigi sensitif.
+                  benefits:
+                    - Meredakan sensitif
+                    - Melindungi enamel
+                  usage_instructions: Sikat 2 menit setelah makan.
+                  doctor_tips: Gunakan sikat lembut.
+                  dosage: null
+                  is_active: true
+                  product_image_url: "https://example.com/storage/5/product-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada di database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin Products
+      summary: Update produk
+      description: "Memperbarui produk. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      operationId: adminProductsUpdate
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
       requestBody:
         content:
           multipart/form-data:
             schema:
               type: object
               properties:
-                name: { type: string }
-                description: { type: string }
-                usage_instructions: { type: string }
-                dosage: { type: string }
-                is_active: { type: integer }
-                image: { type: string, format: binary }
-      responses: { '201': { description: Created } }
+                name:
+                  type: string
+      responses:
+        200:
+          description: 200 OK — produk diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Katalog obat berhasil diperbarui
+                data:
+                  id: 1
+                  name: Pasta Gigi Sensitif Pro
+                  slug: pasta-gigi-sensitif-pro
+                  category: produk_gigi
+                  description: Pasta gigi untuk gigi sensitif.
+                  benefits:
+                    - Meredakan sensitif
+                    - Melindungi enamel
+                  usage_instructions: Sikat 2 menit setelah makan.
+                  doctor_tips: Gunakan sikat lembut.
+                  dosage: null
+                  is_active: true
+                  product_image_url: "https://example.com/storage/5/product-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi field gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    name:
+                      - Nama wajib diisi.
+    delete:
+      tags:
+        - Admin Products
+      summary: Hapus produk
+      description: "Menghapus produk beserta media terkait (jika ada).\n\n**Auth:** Bearer token admin."
+      operationId: adminProductsDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — produk dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Katalog obat berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+  /v1/admin/tips:
+    get:
+      tags:
+        - Admin Tips
+      summary: List tips harian
+      description: "Semua tips (aktif & nonaktif).\n\n**Auth:** Bearer token admin.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminTipsIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — List tips
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data tip harian berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                        is_active: true
+                        image_url: "https://example.com/storage/1/tip-1.jpg"
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data tip harian berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                          is_active: true
+                          image_url: "https://example.com/storage/1/tip-1.jpg"
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+    post:
+      tags:
+        - Admin Tips
+      summary: Buat tip
+      description: "Buat tips harian.\n\n**Auth:** Bearer token admin.\n**Wajib:** content\n**Catatan:** Set `is_active=true` akan menggantikan tip aktif lain (via command rotate)."
+      operationId: adminTipsStore
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
+      responses:
+        201:
+          description: 201 Created — Tip dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: Tip harian berhasil dibuat
+                data:
+                  id: 1
+                  content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                  is_active: true
+                  image_url: "https://example.com/storage/1/tip-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — Content tip kosong
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    content:
+                      - Konten wajib diisi.
+  /v1/admin/tips/{id}:
+    get:
+      tags:
+        - Admin Tips
+      summary: Detail tip harian
+      description: "Mengambil detail tip harian berdasarkan ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminTipsShow
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — Detail tip harian
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail tip harian
+                data:
+                  id: 1
+                  content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                  is_active: true
+                  image_url: "https://example.com/storage/1/tip-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada di database
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin Tips
+      summary: Update tip harian
+      description: "Memperbarui tip harian. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      operationId: adminTipsUpdate
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        200:
+          description: 200 OK — tip harian diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: Tip harian berhasil diperbarui
+                data:
+                  id: 1
+                  content: "Sikat gigi minimal 2 menit, 2 kali sehari."
+                  is_active: true
+                  image_url: "https://example.com/storage/1/tip-1.jpg"
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi field gagal
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    content:
+                      - Konten wajib diisi.
+    delete:
+      tags:
+        - Admin Tips
+      summary: Hapus tip harian
+      description: "Menghapus tip harian beserta media terkait (jika ada).\n\n**Auth:** Bearer token admin."
+      operationId: adminTipsDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — tip harian dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: Tip harian berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+  /v1/admin/faqs:
+    get:
+      tags:
+        - Admin FAQs
+      summary: List FAQ
+      description: "Semua FAQ termasuk nonaktif.\n\n**Auth:** Bearer token admin.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)"
+      operationId: adminFaqsIndex
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/PageParam"
+        -
+          $ref: "#/components/parameters/PerPageParam"
+      responses:
+        200:
+          description: 200 OK — List FAQ admin
+          content:
+            application/json:
+              examples:
+                tanpaPage_array:
+                  summary: Tanpa ?page — data array (default)
+                  value:
+                    status: true
+                    message: Data FAQ berhasil dimuat
+                    data:
+                      -
+                        id: 1
+                        question: Berapa kali sehari harus sikat gigi?
+                        answer: "Minimal 2 kali sehari, pagi dan malam."
+                        sort_order: 1
+                        is_active: true
+                        created_at: "2026-06-07T04:28:06.000000Z"
+                        updated_at: "2026-06-07T04:28:06.000000Z"
+                denganPage_pagination:
+                  summary: "Dengan ?page=1&per_page=15 — data pagination"
+                  value:
+                    status: true
+                    message: Data FAQ berhasil dimuat
+                    data:
+                      current_page: 1
+                      data:
+                        -
+                          id: 1
+                          question: Berapa kali sehari harus sikat gigi?
+                          answer: "Minimal 2 kali sehari, pagi dan malam."
+                          sort_order: 1
+                          is_active: true
+                          created_at: "2026-06-07T04:28:06.000000Z"
+                          updated_at: "2026-06-07T04:28:06.000000Z"
+                      first_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      from: 1
+                      last_page: 1
+                      last_page_url: "http://127.0.0.1:8000/api/v1/example?page=1"
+                      links:
+                      next_page_url: null
+                      path: "http://127.0.0.1:8000/api/v1/example"
+                      per_page: 15
+                      prev_page_url: null
+                      to: 1
+                      total: 1
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+    post:
+      tags:
+        - Admin FAQs
+      summary: Buat FAQ
+      description: "Tambah pertanyaan FAQ.\n\n**Auth:** Bearer token admin.\n**Body:** application/json\n**Wajib:** question, answer"
+      operationId: adminFaqsStore
+      security:
+        -
+          bearerAuth:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+                - answer
+              properties:
+                question:
+                  type: string
+                answer:
+                  type: string
+                sort_order:
+                  type: integer
+                is_active:
+                  type: boolean
+            example:
+              question: Kapan harus ke dokter gigi?
+              answer: Minimal 6 bulan sekali.
+              sort_order: 2
+              is_active: true
+      responses:
+        201:
+          description: 201 Created — FAQ dibuat
+          content:
+            application/json:
+              example:
+                status: true
+                message: FAQ berhasil dibuat
+                data:
+                  id: 1
+                  question: Berapa kali sehari harus sikat gigi?
+                  answer: "Minimal 2 kali sehari, pagi dan malam."
+                  sort_order: 1
+                  is_active: true
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        422:
+          description: 422 Unprocessable Entity — FAQ tidak lengkap
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    question:
+                      - Pertanyaan wajib diisi.
+                    answer:
+                      - Jawaban wajib diisi.
+  /v1/admin/faqs/{id}:
+    get:
+      tags:
+        - Admin FAQs
+      summary: Detail FAQ
+      description: "Detail FAQ by ID.\n\n**Auth:** Bearer token admin."
+      operationId: adminFaqsShow
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — Detail FAQ
+          content:
+            application/json:
+              example:
+                status: true
+                message: Detail FAQ
+                data:
+                  id: 1
+                  question: Berapa kali sehari harus sikat gigi?
+                  answer: "Minimal 2 kali sehari, pagi dan malam."
+                  sort_order: 1
+                  is_active: true
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — FAQ ID tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+    put:
+      tags:
+        - Admin FAQs
+      summary: Update FAQ
+      description: "Perbarui FAQ.\n\n**Auth:** Bearer token admin.\n**Body:** application/json"
+      operationId: adminFaqsUpdate
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                answer:
+                  type: string
+                sort_order:
+                  type: integer
+                is_active:
+                  type: boolean
+      responses:
+        200:
+          description: 200 OK — FAQ diperbarui
+          content:
+            application/json:
+              example:
+                status: true
+                message: FAQ berhasil diperbarui
+                data:
+                  id: 1
+                  question: Berapa kali sehari harus sikat gigi?
+                  answer: "Minimal 2 kali sehari, pagi dan malam."
+                  sort_order: 1
+                  is_active: true
+                  created_at: "2026-06-07T04:28:06.000000Z"
+                  updated_at: "2026-06-07T04:28:06.000000Z"
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — FAQ tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null
+        422:
+          description: 422 Unprocessable Entity — Validasi FAQ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validasi gagal
+                  data:
+                    $ref: "#/components/schemas/ValidationErrorData"
+              example:
+                status: false
+                message: Validasi gagal
+                data:
+                  errors:
+                    question:
+                      - Pertanyaan wajib diisi.
+    delete:
+      tags:
+        - Admin FAQs
+      summary: Hapus FAQ
+      description: "Hapus FAQ permanen.\n\n**Auth:** Bearer token admin."
+      operationId: adminFaqsDestroy
+      security:
+        -
+          bearerAuth:
+      parameters:
+        -
+          $ref: "#/components/parameters/IdParam"
+      responses:
+        200:
+          description: 200 OK — FAQ dihapus
+          content:
+            application/json:
+              example:
+                status: true
+                message: FAQ berhasil dihapus
+                data: null
+        401:
+          description: 401 Unauthorized — Diperlukan Bearer token admin via POST /v1/admin/login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Unauthenticated.
+                data: null
+        403:
+          description: 403 Forbidden — Token bukan role admin (middleware Spatie)
+          content:
+            application/json:
+              example:
+                message: User does not have the right roles.
+        404:
+          description: 404 Not Found — FAQ tidak ada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JSendError"
+              example:
+                status: false
+                message: Data tidak ditemukan.
+                data: null

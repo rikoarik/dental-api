@@ -2,21 +2,27 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Http\Controllers\Api\Admin\Concerns\HandlesAdminListing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\News\StoreNewsRequest;
 use App\Http\Requests\Admin\News\UpdateNewsRequest;
 use App\Models\News;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class NewsController extends Controller
 {
     use ApiResponser;
+    use HandlesAdminListing;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $query = News::latest();
+        $this->applyAdminFilters($query, $request);
+
         return $this->success(
-            News::latest()->paginate(15),
+            $this->resolvePagination($query, $request),
             'Data berita berhasil dimuat'
         );
     }

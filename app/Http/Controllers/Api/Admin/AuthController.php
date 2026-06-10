@@ -29,6 +29,10 @@ class AuthController extends Controller
             return $this->error('Email atau password salah', 401);
         }
 
+        if (! $user->hasRole('admin')) {
+            return $this->error('Akun ini bukan akun admin.', 403);
+        }
+
         $token = $user->createToken('admin-token')->plainTextToken;
 
         return $this->success([

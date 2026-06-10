@@ -8,15 +8,17 @@ use App\Http\Requests\Admin\Banner\UpdateBannerRequest;
 use App\Models\Banner;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BannerController extends Controller
 {
     use ApiResponser;
+    use Concerns\HandlesAdminListing;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         return $this->success(
-            Banner::latest()->paginate(15),
+            $this->resolvePagination(Banner::latest(), $request),
             'Data banner berhasil dimuat'
         );
     }

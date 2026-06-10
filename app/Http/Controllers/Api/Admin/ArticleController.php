@@ -2,21 +2,27 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Http\Controllers\Api\Admin\Concerns\HandlesAdminListing;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Article\StoreArticleRequest;
 use App\Http\Requests\Admin\Article\UpdateArticleRequest;
 use App\Models\Article;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ArticleController extends Controller
 {
     use ApiResponser;
+    use HandlesAdminListing;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $query = Article::latest();
+        $this->applyAdminFilters($query, $request);
+
         return $this->success(
-            Article::latest()->paginate(15),
+            $this->resolvePagination($query, $request),
             'Data artikel berhasil dimuat'
         );
     }

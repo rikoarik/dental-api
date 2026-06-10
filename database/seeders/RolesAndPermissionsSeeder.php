@@ -13,5 +13,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'name' => 'admin',
             'guard_name' => 'web',
         ]);
+
+        Role::firstOrCreate([
+            'name' => 'user',
+            'guard_name' => 'web',
+        ]);
     }
 }

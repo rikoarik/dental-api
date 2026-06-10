@@ -14,7 +14,7 @@ class AuthTest extends TestCase
 
     public function test_admin_can_login_with_correct_credentials(): void
     {
-        User::factory()->create([
+        $this->createAdminUser([
             'email' => 'admin@test.com',
             'password' => bcrypt('password123'),
         ]);
@@ -29,9 +29,25 @@ class AuthTest extends TestCase
                  ->assertJsonStructure(['data' => ['token', 'user']]);
     }
 
+    public function test_user_without_admin_role_cannot_login_via_admin(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'user@test.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $user->assignRole('user');
+
+        $response = $this->postJson('/api/v1/admin/login', [
+            'email' => 'user@test.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403);
+    }
+
     public function test_admin_cannot_login_with_wrong_password(): void
     {
-        User::factory()->create([
+        $this->createAdminUser([
             'email' => 'admin@test.com',
             'password' => bcrypt('password123'),
         ]);

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Admin\Banner;
 
+use App\Enums\BannerTag;
 use App\Http\Requests\Concerns\ValidatesImage;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateBannerRequest extends FormRequest
 {
@@ -18,6 +20,8 @@ class UpdateBannerRequest extends FormRequest
     {
         return array_merge([
             'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'tag' => ['nullable', Rule::enum(BannerTag::class)],
             'link_url' => ['nullable', 'url'],
             'is_active' => ['sometimes', 'boolean'],
         ], $this->imageRules(required: false));

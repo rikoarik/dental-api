@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Admin\Tip;
 
+use App\Http\Requests\Concerns\ValidatesImage;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTipRequest extends FormRequest
 {
+    use ValidatesImage;
+
     public function authorize(): bool
     {
         return true;
@@ -13,9 +16,9 @@ class UpdateTipRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        return array_merge([
             'content' => ['sometimes', 'required', 'string'],
             'is_active' => ['sometimes', 'boolean'],
-        ];
+        ], $this->imageRules(required: false));
     }
 }
