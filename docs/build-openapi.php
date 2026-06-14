@@ -351,6 +351,7 @@ $spec = [
     ],
     'servers' => [
         ['url' => '/api', 'description' => 'Default — same origin (pakai ini di Swagger, hindari CORS)'],
+        ['url' => 'https://eternal-outpour-humorist.ngrok-free.dev/api', 'description' => 'Ngrok Tunnel'],
         ['url' => 'http://127.0.0.1:8000/api', 'description' => 'Local explicit — hanya dari mesin yang menjalankan artisan serve'],
         ['url' => 'http://10.0.2.2:8000/api', 'description' => 'Android Emulator'],
     ],
