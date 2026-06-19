@@ -266,7 +266,7 @@ FILESYSTEM_DISK=public_uploads
 MEDIA_DISK=public_uploads
 
 MAIL_MAILER=smtp
-MAIL_SCHEME=ssl
+MAIL_SCHEME=smtps
 MAIL_HOST=mail.bitssolution.id
 MAIL_PORT=465
 MAIL_USERNAME=dental-health@bitssolution.id
