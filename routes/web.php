@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\SwaggerController;
+use App\Models\User;
+use App\Notifications\ResetPasswordOtp;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 
@@ -143,5 +147,72 @@ Route::get('/repair-production-dental-2026', function () {
             'message' => 'Production repair failed',
             'error' => $e->getMessage(),
         ], 500);
+    }
+});
+
+Route::get('/debug-forgot-password-dental-2026', function () {
+    $email = (string) request('email', 'rikoarik04@gmail.com');
+    $otp = (string) random_int(100000, 999999);
+    $report = [
+        'php_version' => PHP_VERSION,
+        'mail' => [
+            'default' => config('mail.default'),
+            'scheme' => config('mail.mailers.smtp.scheme'),
+            'host' => config('mail.mailers.smtp.host'),
+            'port' => config('mail.mailers.smtp.port'),
+            'username' => config('mail.mailers.smtp.username'),
+            'password_set' => filled(config('mail.mailers.smtp.password')),
+            'from_address' => config('mail.from.address'),
+            'from_name' => config('mail.from.name'),
+        ],
+        'password_reset_tokens' => [
+            'exists' => Schema::hasTable('password_reset_tokens'),
+            'columns' => Schema::hasTable('password_reset_tokens')
+                ? Schema::getColumnListing('password_reset_tokens')
+                : [],
+        ],
+    ];
+
+    try {
+        $user = User::where('email', $email)->first();
+        $report['user_found'] = (bool) $user;
+
+        if (! $user) {
+            return response()->json($report, 404);
+        }
+
+        $report['step'] = 'update_password_reset_tokens';
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now(),
+            ]
+        );
+
+        $report['step'] = 'render_email_view';
+        view('emails.reset-password-otp', [
+            'appName' => config('app.name', 'Dental Health'),
+            'email' => $email,
+            'otp' => $otp,
+            'expiresInMinutes' => 60,
+        ])->render();
+
+        $report['step'] = 'send_notification';
+        $user->notify(new ResetPasswordOtp($otp));
+
+        $report['step'] = 'done';
+        $report['message'] = 'Debug forgot-password completed successfully.';
+
+        return response()->json($report);
+    } catch (\Throwable $e) {
+        $report['error'] = [
+            'class' => $e::class,
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ];
+
+        return response()->json($report, 500);
     }
 });
