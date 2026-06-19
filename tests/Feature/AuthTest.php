@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Notifications\ResetPasswordOtp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
@@ -188,18 +190,27 @@ class AuthTest extends TestCase
         $this->assertCount(0, DB::table('personal_access_tokens')->where('tokenable_id', $user->id)->get());
     }
 
-    public function test_forgot_password_sends_link(): void
+    public function test_forgot_password_sends_otp(): void
     {
-        User::factory()->create(['email' => 'resetme@test.com']);
+        Notification::fake();
+
+        $user = User::factory()->create(['email' => 'resetme@test.com']);
 
         $response = $this->postJson('/api/v1/admin/forgot-password', [
             'email' => 'resetme@test.com',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['status' => true, 'message' => 'We have emailed your password reset link.']);
+                 ->assertJson(['status' => true, 'message' => 'Kode OTP reset password sudah dikirim ke email.']);
 
         $this->assertDatabaseHas('password_reset_tokens', ['email' => 'resetme@test.com']);
+
+        Notification::assertSentTo($user, ResetPasswordOtp::class, function (ResetPasswordOtp $notification) {
+            $record = DB::table('password_reset_tokens')->where('email', 'resetme@test.com')->first();
+
+            return preg_match('/^\d{6}$/', $notification->otp) === 1
+                && Hash::check($notification->otp, $record->token);
+        });
     }
 
     public function test_forgot_password_fails_if_email_not_found(): void
@@ -215,38 +226,51 @@ class AuthTest extends TestCase
                  ]);
     }
 
-    public function test_reset_password_with_valid_token(): void
+    public function test_reset_password_with_valid_otp(): void
     {
         $user = User::factory()->create(['email' => 'resetme@test.com', 'password' => bcrypt('oldpassword')]);
 
-        $token = Password::broker()->createToken($user);
+        DB::table('password_reset_tokens')->insert([
+            'email' => 'resetme@test.com',
+            'token' => Hash::make('123456'),
+            'created_at' => now(),
+        ]);
 
         $response = $this->postJson('/api/v1/admin/reset-password', [
             'email' => 'resetme@test.com',
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
-            'token' => $token,
+            'otp' => '123456',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['status' => true, 'message' => 'Your password has been reset.']);
+                 ->assertJson(['status' => true, 'message' => 'Password berhasil direset.']);
+
+        $this->assertTrue(Hash::check('newpassword123', $user->refresh()->password));
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'resetme@test.com']);
     }
 
-    public function test_reset_password_fails_with_invalid_token(): void
+    public function test_reset_password_fails_with_invalid_otp(): void
     {
         User::factory()->create(['email' => 'resetme@test.com', 'password' => bcrypt('oldpassword')]);
+
+        DB::table('password_reset_tokens')->insert([
+            'email' => 'resetme@test.com',
+            'token' => Hash::make('123456'),
+            'created_at' => now(),
+        ]);
 
         $response = $this->postJson('/api/v1/admin/reset-password', [
             'email' => 'resetme@test.com',
             'password' => 'newpassword123',
             'password_confirmation' => 'newpassword123',
-            'token' => 'invalid-random-token',
+            'otp' => '654321',
         ]);
 
         $response->assertStatus(400)
                  ->assertJson([
                      'status' => false,
-                     'message' => 'This password reset token is invalid.',
+                     'message' => 'Kode OTP reset password tidak valid atau sudah kedaluwarsa.',
                  ]);
     }
 }

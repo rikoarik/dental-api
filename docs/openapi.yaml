@@ -1554,8 +1554,8 @@ paths:
     post:
       tags:
         - Admin Auth
-      summary: Kirim link reset password
-      description: "Mengirim email reset password ke admin.\n\n**Auth:** Tidak perlu."
+      summary: Kirim OTP reset password
+      description: "Mengirim kode OTP reset password ke email admin.\n\n**Auth:** Tidak perlu."
       operationId: adminForgotPassword
       requestBody:
         required: true
@@ -1573,12 +1573,12 @@ paths:
               email: "admin@clinic.com"
       responses:
         200:
-          description: 200 OK — Email terkirim
+          description: 200 OK — OTP terkirim
           content:
             application/json:
               example:
                 status: true
-                message: We have emailed your password reset link.
+                message: Kode OTP reset password sudah dikirim ke email.
                 data: null
         400:
           description: 400 Bad Request — Email tidak ditemukan
@@ -1617,7 +1617,7 @@ paths:
       tags:
         - Admin Auth
       summary: Reset password
-      description: "Reset password admin menggunakan token dari email.\n\n**Auth:** Tidak perlu."
+      description: "Reset password admin menggunakan OTP dari email.\n\n**Auth:** Tidak perlu."
       operationId: adminResetPassword
       requestBody:
         required: true
@@ -1627,20 +1627,27 @@ paths:
               type: object
               required:
                 - email
+                - otp
                 - password
                 - password_confirmation
-                - token
               properties:
                 email:
                   type: string
                   format: email
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
                 password:
                   type: string
                   minLength: 8
                 password_confirmation:
                   type: string
-                token:
-                  type: string
+            example:
+              email: "admin@clinic.com"
+              otp: "123456"
+              password: newpassword123
+              password_confirmation: newpassword123
       responses:
         200:
           description: 200 OK — Password direset
@@ -1648,17 +1655,17 @@ paths:
             application/json:
               example:
                 status: true
-                message: Your password has been reset.
+                message: Password berhasil direset.
                 data: null
         400:
-          description: 400 Bad Request — Token invalid
+          description: 400 Bad Request — OTP invalid
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/JSendError"
               example:
                 status: false
-                message: This password reset token is invalid.
+                message: Kode OTP reset password tidak valid atau sudah kedaluwarsa.
                 data: null
         422:
           description: 422 Unprocessable Entity — Validasi reset password
@@ -1680,6 +1687,8 @@ paths:
                 message: Validasi gagal
                 data:
                   errors:
+                    otp:
+                      - OTP harus 6 digit.
                     password:
                       - Konfirmasi password tidak cocok.
   /v1/admin/dashboard:

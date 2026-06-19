@@ -51,7 +51,12 @@ function yamlScalar(mixed $value): string
         return (string) $value;
     }
     if (is_string($value)) {
-        if ($value === '' || preg_match('/[:\n#|>&*%!@`\{\}\[\],]/', $value) || str_starts_with($value, ' ')) {
+        if (
+            $value === '' ||
+            preg_match('/^(?:[-+]?\d+(?:\.\d+)?|true|false|null)$/i', $value) ||
+            preg_match('/[:\n#|>&*%!@`\{\}\[\],]/', $value) ||
+            str_starts_with($value, ' ')
+        ) {
             return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
@@ -803,8 +808,8 @@ $spec = [
         '/v1/admin/forgot-password' => [
             'post' => [
                 'tags' => ['Admin Auth'],
-                'summary' => 'Kirim link reset password',
-                'description' => "Mengirim email reset password ke admin.\n\n**Auth:** Tidak perlu.",
+                'summary' => 'Kirim OTP reset password',
+                'description' => "Mengirim kode OTP reset password ke email admin.\n\n**Auth:** Tidak perlu.",
                 'operationId' => 'adminForgotPassword',
                 'requestBody' => [
                     'required' => true,
@@ -816,7 +821,7 @@ $spec = [
                     ],
                 ],
                 'responses' => [
-                    '200' => $json('200 OK — Email terkirim', $jsend(true, 'We have emailed your password reset link.', null)),
+                    '200' => $json('200 OK — OTP terkirim', $jsend(true, 'Kode OTP reset password sudah dikirim ke email.', null)),
                     '400' => $json('400 Bad Request — Email tidak ditemukan', $jsend(false, 'We can\'t find a user with that email address.', null), $ref('JSendError')),
                     '422' => $validation(['email' => ['Email wajib diisi.']], 'Format email tidak valid'),
                 ],
@@ -826,25 +831,26 @@ $spec = [
             'post' => [
                 'tags' => ['Admin Auth'],
                 'summary' => 'Reset password',
-                'description' => "Reset password admin menggunakan token dari email.\n\n**Auth:** Tidak perlu.",
+                'description' => "Reset password admin menggunakan OTP dari email.\n\n**Auth:** Tidak perlu.",
                 'operationId' => 'adminResetPassword',
                 'requestBody' => [
                     'required' => true,
                     'content' => [
                         'application/json' => [
-                            'schema' => ['type' => 'object', 'required' => ['email', 'password', 'password_confirmation', 'token'], 'properties' => [
+                            'schema' => ['type' => 'object', 'required' => ['email', 'otp', 'password', 'password_confirmation'], 'properties' => [
                                 'email' => ['type' => 'string', 'format' => 'email'],
+                                'otp' => ['type' => 'string', 'minLength' => 6, 'maxLength' => 6],
                                 'password' => ['type' => 'string', 'minLength' => 8],
                                 'password_confirmation' => ['type' => 'string'],
-                                'token' => ['type' => 'string'],
                             ]],
+                            'example' => ['email' => 'admin@clinic.com', 'otp' => '123456', 'password' => 'newpassword123', 'password_confirmation' => 'newpassword123'],
                         ],
                     ],
                 ],
                 'responses' => [
-                    '200' => $json('200 OK — Password direset', $jsend(true, 'Your password has been reset.', null)),
-                    '400' => $json('400 Bad Request — Token invalid', $jsend(false, 'This password reset token is invalid.', null), $ref('JSendError')),
-                    '422' => $validation(['password' => ['Konfirmasi password tidak cocok.']], 'Validasi reset password'),
+                    '200' => $json('200 OK — Password direset', $jsend(true, 'Password berhasil direset.', null)),
+                    '400' => $json('400 Bad Request — OTP invalid', $jsend(false, 'Kode OTP reset password tidak valid atau sudah kedaluwarsa.', null), $ref('JSendError')),
+                    '422' => $validation(['otp' => ['OTP harus 6 digit.'], 'password' => ['Konfirmasi password tidak cocok.']], 'Validasi reset password'),
                 ],
             ],
         ],

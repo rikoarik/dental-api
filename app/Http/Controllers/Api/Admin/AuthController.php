@@ -8,12 +8,14 @@ use App\Http\Requests\Admin\Auth\LoginRequest;
 use App\Http\Requests\Admin\Auth\RegisterRequest;
 use App\Http\Requests\Admin\Auth\ResetPasswordRequest;
 use App\Models\User;
+use App\Notifications\ResetPasswordOtp;
 use App\Traits\ApiResponser;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -70,32 +72,60 @@ class AuthController extends Controller
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = Password::broker()->sendResetLink(
-            $request->only('email')
+        $email = $request->validated('email');
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
+            return $this->error("We can't find a user with that email address.", 400);
+        }
+
+        $otp = (string) random_int(100000, 999999);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now(),
+            ]
         );
 
-        return $status === Password::RESET_LINK_SENT
-            ? $this->success(null, __($status))
-            : $this->error(__($status), 400);
+        $user->notify(new ResetPasswordOtp($otp));
+
+        return $this->success(null, 'Kode OTP reset password sudah dikirim ke email.');
     }
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $status = Password::broker()->reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password),
-                ])->setRememberToken(Str::random(60));
+        $data = $request->validated();
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $data['email'])
+            ->first();
 
-                $user->save();
+        if (
+            ! $record ||
+            ! $record->created_at ||
+            Carbon::parse($record->created_at)->lt(now()->subMinutes(60)) ||
+            ! Hash::check($data['otp'], $record->token)
+        ) {
+            return $this->error('Kode OTP reset password tidak valid atau sudah kedaluwarsa.', 400);
+        }
 
-                event(new PasswordReset($user));
-            }
-        );
+        $user = User::where('email', $data['email'])->first();
 
-        return $status === Password::PASSWORD_RESET
-            ? $this->success(null, __($status))
-            : $this->error(__($status), 400);
+        if (! $user) {
+            return $this->error("We can't find a user with that email address.", 400);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($data['password']),
+        ])->setRememberToken(Str::random(60));
+
+        $user->save();
+
+        DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
+
+        event(new PasswordReset($user));
+
+        return $this->success(null, 'Password berhasil direset.');
     }
 }

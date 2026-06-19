@@ -265,8 +265,13 @@ CACHE_STORE=database
 FILESYSTEM_DISK=public_uploads
 MEDIA_DISK=public_uploads
 
-MAIL_MAILER=log
-MAIL_FROM_ADDRESS="hello@domainkamu.com"
+MAIL_MAILER=smtp
+MAIL_SCHEME=ssl
+MAIL_HOST=mail.bitssolution.id
+MAIL_PORT=465
+MAIL_USERNAME=dental-health@bitssolution.id
+MAIL_PASSWORD=ISI_PASSWORD_EMAIL_DENTAL_HEALTH
+MAIL_FROM_ADDRESS=dental-health@bitssolution.id
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
