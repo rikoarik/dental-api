@@ -2,6 +2,20 @@
 
 Backend API for Dental Clinic Application. Built with Laravel 12.
 
+## Deploy ke Rumahweb
+
+CI/CD FTP untuk shared hosting Rumahweb tersedia di:
+
+```text
+.github/workflows/deploy-ftp.yml
+```
+
+Panduan setup hosting, `.env`, database, dan GitHub Secrets:
+
+```text
+docs/rumahweb-ftp-cicd.md
+```
+
 ## Swagger UI
 
 Jalankan server lalu buka:

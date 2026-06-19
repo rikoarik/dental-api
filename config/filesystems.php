@@ -47,6 +47,25 @@ return [
             'report' => false,
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Shared Hosting Public Uploads Disk
+        |--------------------------------------------------------------------------
+        |
+        | Use this disk on shared hosting that cannot run `php artisan storage:link`.
+        | Set MEDIA_DISK=public_uploads in production so Spatie Media Library writes
+        | directly to public/storage and files are accessible without a symlink.
+        |
+        */
+        'public_uploads' => [
+            'driver' => 'local',
+            'root' => public_path('storage'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
