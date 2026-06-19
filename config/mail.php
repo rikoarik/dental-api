@@ -7,6 +7,8 @@ $mailScheme = match ($mailScheme) {
     '' => null,
     default => $mailScheme,
 };
+$mailFromAddress = env('MAIL_FROM_ADDRESS') ?: env('MAIL_USERNAME') ?: 'dental-health@bitssolution.id';
+$mailFromName = env('MAIL_FROM_NAME') ?: env('APP_NAME', 'Dental Health');
 
 return [
 
@@ -119,8 +121,8 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        'address' => $mailFromAddress,
+        'name' => $mailFromName,
     ],
 
 ];
