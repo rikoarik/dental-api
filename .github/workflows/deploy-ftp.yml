@@ -26,14 +26,14 @@ jobs:
           extensions: mbstring, dom, fileinfo, pdo_mysql, sqlite, gd, zip, bcmath, intl
           coverage: none
 
+      - name: Install Composer dependencies for tests
+        run: composer install --prefer-dist --no-progress --no-interaction
+
       - name: Setup test environment
         run: |
           cp .env.example .env
           php artisan key:generate
           touch database/database.sqlite
-
-      - name: Install Composer dependencies for tests
-        run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run tests
         env:
