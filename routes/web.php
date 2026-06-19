@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\SwaggerController;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -98,6 +100,48 @@ Route::get('/create-storage-link-dental-2026', function () {
         return response()->json([
             'message' => 'Failed to prepare public storage',
             'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/repair-production-dental-2026', function () {
+    try {
+        $deleted = [];
+        $patterns = [
+            base_path('bootstrap/cache/config.php'),
+            base_path('bootstrap/cache/events.php'),
+            base_path('bootstrap/cache/routes-*.php'),
+            storage_path('framework/views/*.php'),
+        ];
+
+        foreach ($patterns as $pattern) {
+            foreach (glob($pattern) ?: [] as $file) {
+                if (is_file($file) && @unlink($file)) {
+                    $deleted[] = $file;
+                }
+            }
+        }
+
+        $passwordResetTokens = 'exists';
+        if (! Schema::hasTable('password_reset_tokens')) {
+            Schema::create('password_reset_tokens', function (Blueprint $table): void {
+                $table->string('email')->primary();
+                $table->string('token');
+                $table->timestamp('created_at')->nullable();
+            });
+
+            $passwordResetTokens = 'created';
+        }
+
+        return response()->json([
+            'message' => 'Production repair completed. Retry the failed request now.',
+            'deleted_cache_files' => $deleted,
+            'password_reset_tokens' => $passwordResetTokens,
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'message' => 'Production repair failed',
+            'error' => $e->getMessage(),
         ], 500);
     }
 });
