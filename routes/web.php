@@ -15,28 +15,88 @@ Route::get('/create-storage-link-dental-2026', function () {
         $target = storage_path('app/public');
         $link = public_path('storage');
 
-        if (file_exists($link)) {
-            return response()->json([
-                'message' => 'Storage link already exists',
-                'target' => $target,
-                'link' => $link
-            ]);
-        }
-
-        if (!file_exists($target)) {
+        if (! file_exists($target)) {
             mkdir($target, 0755, true);
         }
 
-        symlink($target, $link);
+        $sourceFiles = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($target, FilesystemIterator::SKIP_DOTS)
+        );
+
+        $sourceFileCount = 0;
+        foreach ($sourceFiles as $sourceFile) {
+            if ($sourceFile->isFile() && $sourceFile->getFilename() !== '.gitignore') {
+                $sourceFileCount++;
+            }
+        }
+
+        if (is_link($link)) {
+            return response()->json([
+                'message' => 'Storage link already exists',
+                'target' => $target,
+                'link' => $link,
+                'source_file_count' => $sourceFileCount,
+            ]);
+        }
+
+        if (file_exists($link) && ! is_dir($link)) {
+            return response()->json([
+                'message' => 'public/storage exists but is not a directory or symlink',
+                'target' => $target,
+                'link' => $link,
+            ], 500);
+        }
+
+        if (! file_exists($link) && function_exists('symlink') && @symlink($target, $link)) {
+            return response()->json([
+                'message' => 'Storage link created successfully',
+                'target' => $target,
+                'link' => $link,
+                'source_file_count' => $sourceFileCount,
+            ]);
+        }
+
+        if (! file_exists($link)) {
+            mkdir($link, 0755, true);
+        }
+
+        $copiedFiles = 0;
+        $copyDirectory = function (string $source, string $destination) use (&$copyDirectory, &$copiedFiles): void {
+            if (! is_dir($destination)) {
+                mkdir($destination, 0755, true);
+            }
+
+            foreach (new DirectoryIterator($source) as $item) {
+                if ($item->isDot() || $item->getFilename() === '.gitignore') {
+                    continue;
+                }
+
+                $sourcePath = $item->getPathname();
+                $destinationPath = $destination.DIRECTORY_SEPARATOR.$item->getFilename();
+
+                if ($item->isDir()) {
+                    $copyDirectory($sourcePath, $destinationPath);
+                    continue;
+                }
+
+                if (copy($sourcePath, $destinationPath)) {
+                    $copiedFiles++;
+                }
+            }
+        };
+
+        $copyDirectory($target, $link);
 
         return response()->json([
-            'message' => 'Storage link created successfully',
+            'message' => 'Symlink unavailable, copied storage files to public/storage',
             'target' => $target,
-            'link' => $link
+            'link' => $link,
+            'source_file_count' => $sourceFileCount,
+            'copied_file_count' => $copiedFiles,
         ]);
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return response()->json([
-            'message' => 'Failed to create storage link',
+            'message' => 'Failed to prepare public storage',
             'error' => $e->getMessage()
         ], 500);
     }

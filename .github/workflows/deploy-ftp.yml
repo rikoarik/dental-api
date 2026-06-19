@@ -33,10 +33,16 @@ jobs:
           CACHE_STORE=array SESSION_DRIVER=array php artisan optimize:clear
           php artisan config:clear
 
+      - name: Publish bundled public storage
+        run: |
+          mkdir -p public/storage
+          cp -a deploy/public-storage/. public/storage/
+
       - name: Prepare deployment files
         run: |
           rm -rf .git
           rm -rf .github
+          rm -rf deploy
           rm -rf tests
           rm -rf node_modules
           rm -f .env
