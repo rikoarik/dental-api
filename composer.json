@@ -59,6 +59,8 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
         }
     },
     "minimum-stability": "stable",
