@@ -11,102 +11,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-and-build:
-    name: Test and build
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, pdo_mysql, sqlite, gd, zip, bcmath, intl
+          php-version: "8.3"
+          extensions: mbstring, xml, ctype, json, curl, mysql, dom, fileinfo, pdo_mysql, gd, zip, bcmath, intl
           coverage: none
 
-      - name: Install Composer dependencies for tests
-        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Install Composer dependencies
+        run: composer install --optimize-autoloader --no-dev --no-interaction
 
-      - name: Setup test environment
+      - name: Clear Laravel caches before packaging
         run: |
-          cp .env.example .env
-          php artisan key:generate
-          touch database/database.sqlite
-
-      - name: Run tests
-        env:
-          APP_ENV: testing
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
-          SESSION_DRIVER: array
-          CACHE_STORE: array
-          QUEUE_CONNECTION: sync
-        run: php artisan test
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Node dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          elif [ -f package.json ]; then
-            npm install
-          fi
-
-      - name: Build frontend assets
-        run: |
-          if [ -f package.json ]; then
-            npm run build --if-present
-          fi
-
-      - name: Install Composer dependencies for production
-        run: composer install --prefer-dist --no-dev --no-progress --no-interaction --optimize-autoloader
-
-      - name: Clear Laravel cache before deploy
-        run: |
+          CACHE_STORE=array SESSION_DRIVER=array php artisan optimize:clear
           php artisan config:clear
-          php artisan route:clear
-          php artisan view:clear
-          php artisan event:clear
 
-      - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: laravel-production-build
-          path: |
-            .
-            !.git
-            !.github
-            !.env
-            !.env.*
-            !node_modules
-            !tests
-            !storage/logs/*
-            !storage/framework/cache/data/*
-            !storage/framework/sessions/*
-            !storage/framework/views/*
-            !public/storage
-          retention-days: 1
+      - name: Prepare deployment files
+        run: |
+          rm -rf .git
+          rm -rf .github
+          rm -rf tests
+          rm -rf node_modules
+          rm -f .env
+          rm -f .env.example
+          rm -f .gitignore
+          rm -f .gitattributes
+          rm -f phpunit.xml
+          rm -f README.md
 
-  deploy:
-    name: FTP deploy
-    runs-on: ubuntu-latest
-    needs: test-and-build
-    environment: production
-
-    steps:
-      - name: Download deployment artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: laravel-production-build
-          path: app
-
-      - name: Deploy via FTP
+      - name: Deploy to Production via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -114,19 +54,19 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
           protocol: ftps
-          local-dir: app/
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
-          dangerous-clean-slate: false
           security: loose
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/tests/**
-            **/.env
-            **/.env.*
-            **/storage/logs/**
-            **/storage/framework/cache/data/**
-            **/storage/framework/sessions/**
-            **/storage/framework/views/**
-            **/public/storage/**
+            .env
+            .env.example
+
+      - name: Notify success
+        if: success()
+        run: echo "✅ Deployment to production successful!"
+
+      - name: Notify failure
+        if: failure()
+        run: echo "❌ Deployment to production failed!"
