@@ -2358,7 +2358,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Email duplikat atau password tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Email duplikat atau password tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 },
@@ -2671,7 +2671,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Field kosong\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Field kosong\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 },
@@ -4333,7 +4333,7 @@
                                                     "value": "application/json"
                                                 }
                                             ],
-                                            "body": "{\n  \"status\": false,\n  \"message\": \"Validasi login\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                            "body": "{\n  \"status\": false,\n  \"message\": \"Validasi login\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                             "cookie": [],
                                             "_postman_previewlanguage": "json"
                                         },
@@ -4680,7 +4680,7 @@
                                                     "value": "application/json"
                                                 }
                                             ],
-                                            "body": "{\n  \"status\": false,\n  \"message\": \"Data registrasi admin tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                            "body": "{\n  \"status\": false,\n  \"message\": \"Data registrasi admin tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                             "cookie": [],
                                             "_postman_previewlanguage": "json"
                                         }
@@ -5216,7 +5216,7 @@
                                                     "value": "application/json"
                                                 }
                                             ],
-                                            "body": "{\n  \"status\": false,\n  \"message\": \"Format email tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                            "body": "{\n  \"status\": false,\n  \"message\": \"Format email tidak valid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                             "cookie": [],
                                             "_postman_previewlanguage": "json"
                                         }
@@ -6400,7 +6400,7 @@
                                                     "value": "application/json"
                                                 }
                                             ],
-                                            "body": "{\n  \"status\": false,\n  \"message\": \"Title kosong atau gambar invalid\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                            "body": "{\n  \"status\": false,\n  \"message\": \"Title kosong atau gambar invalid\",\n  \"data\": {\n    \"errors\": {\n      \"title\": [\n        \"Judul wajib diisi.\"\n      ],\n      \"image\": [\n        \"Gambar wajib berupa file gambar jpg/png maksimal 2MB.\"\n      ]\n    }\n  }\n}",
                                             "cookie": [],
                                             "_postman_previewlanguage": "json"
                                         }
@@ -7404,7 +7404,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 }
@@ -9374,7 +9374,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 }
@@ -11290,7 +11290,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 }
@@ -13422,7 +13422,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 }
@@ -15122,7 +15122,7 @@
                                                             "value": "application/json"
                                                         }
                                                     ],
-                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"user@example.com\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
+                                                    "body": "{\n  \"status\": false,\n  \"message\": \"Validasi field gagal\",\n  \"data\": {\n    \"errors\": {\n      \"email\": [\n        \"Format email tidak valid atau sudah digunakan.\"\n      ],\n      \"password\": [\n        \"Password wajib diisi.\"\n      ]\n    }\n  }\n}",
                                                     "cookie": [],
                                                     "_postman_previewlanguage": "json"
                                                 }

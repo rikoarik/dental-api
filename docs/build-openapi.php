@@ -289,6 +289,7 @@ $idCrud = function (
     string $deleteMessage,
     array $update422,
     ?array $multipartUpdate = null,
+    bool $multipartUpdateUsesMethodSpoofing = false,
 ) use ($ref, $jsend, $json, $adminAuth, $notFound, $validation): array {
     $multipartUpdate ??= [
         'content' => [
@@ -297,6 +298,20 @@ $idCrud = function (
             ],
         ],
     ];
+
+    if ($multipartUpdateUsesMethodSpoofing) {
+        $multipartUpdate['content']['multipart/form-data']['schema']['properties'] = array_merge(
+            ['_method' => ['type' => 'string', 'enum' => ['PUT'], 'example' => 'PUT']],
+            $multipartUpdate['content']['multipart/form-data']['schema']['properties'] ?? [],
+        );
+    }
+
+    $updateMethod = $multipartUpdateUsesMethodSpoofing ? 'post' : 'put';
+    $updateDescription = "Memperbarui {$resourceLabel}. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.";
+
+    if ($multipartUpdateUsesMethodSpoofing) {
+        $updateDescription .= "\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `\$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses.";
+    }
 
     return [
         'get' => [
@@ -313,10 +328,10 @@ $idCrud = function (
                 '404' => $notFound('Data tidak ditemukan.', 'ID tidak ada di database'),
             ],
         ],
-        'put' => [
+        $updateMethod => [
             'tags' => [$tag],
             'summary' => "Update {$resourceLabel}",
-            'description' => "Memperbarui {$resourceLabel}. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.",
+            'description' => $updateDescription,
             'operationId' => "admin{$resource}Update",
             'security' => [['bearerAuth' => []]],
             'parameters' => [['$ref' => '#/components/parameters/IdParam']],
@@ -900,11 +915,11 @@ $spec['paths']['/v1/admin/banners'] = [
             'content' => [
                 'multipart/form-data' => [
                     'schema' => ['type' => 'object', 'required' => ['title', 'image'], 'properties' => [
-                        'title' => ['type' => 'string'],
-                        'subtitle' => ['type' => 'string'],
-                        'tag' => ['type' => 'string', 'enum' => ['edukasi', 'promo', 'info']],
-                        'link_url' => ['type' => 'string', 'format' => 'uri'],
-                        'is_active' => ['type' => 'boolean'],
+                        'title' => ['type' => 'string', 'example' => 'Promo Scaling Gigi Juni'],
+                        'subtitle' => ['type' => 'string', 'example' => 'Diskon 20% sepanjang Juni'],
+                        'tag' => ['type' => 'string', 'enum' => ['edukasi', 'promo', 'info'], 'example' => 'promo'],
+                        'link_url' => ['type' => 'string', 'format' => 'uri', 'example' => 'https://dentalclinic.example.com/promo/scaling'],
+                        'is_active' => ['type' => 'string', 'enum' => ['1', '0'], 'example' => '1', 'description' => 'Gunakan 1 (true) atau 0 (false) untuk form-data.'],
                         'image' => ['type' => 'string', 'format' => 'binary'],
                     ]],
                 ],
@@ -920,9 +935,9 @@ $spec['paths']['/v1/admin/banners'] = [
 ];
 $spec['paths']['/v1/admin/banners/{id}'] = $idCrud('Admin Banners', 'Banners', 'banner', $banner, 'Detail banner', 'Banner berhasil diperbarui', 'Banner berhasil dihapus', ['link_url' => ['Format URL tidak valid.']], [
     'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'properties' => [
-        'title' => ['type' => 'string'], 'subtitle' => ['type' => 'string'], 'tag' => ['type' => 'string'], 'link_url' => ['type' => 'string'], 'is_active' => ['type' => 'boolean'], 'image' => ['type' => 'string', 'format' => 'binary'],
+        'title' => ['type' => 'string', 'example' => 'Promo Scaling Gigi Juni - Updated'], 'subtitle' => ['type' => 'string', 'example' => 'Diskon 25% untuk pasien baru'], 'tag' => ['type' => 'string', 'enum' => ['edukasi', 'promo', 'info'], 'example' => 'promo'], 'link_url' => ['type' => 'string', 'format' => 'uri', 'example' => 'https://dentalclinic.example.com/promo/scaling'], 'is_active' => ['type' => 'string', 'enum' => ['1', '0'], 'example' => '1', 'description' => 'Gunakan 1 (true) atau 0 (false) untuk form-data.'], 'image' => ['type' => 'string', 'format' => 'binary'],
     ]]]],
-]);
+], true);
 
 // Admin news
 $spec['paths']['/v1/admin/news'] = [
@@ -955,7 +970,7 @@ $spec['paths']['/v1/admin/news'] = [
         'requestBody' => [
             'required' => true,
             'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'required' => ['title', 'content'], 'properties' => [
-                'title' => ['type' => 'string'], 'category' => ['type' => 'string'], 'summary' => ['type' => 'string'], 'content' => ['type' => 'string'], 'is_published' => ['type' => 'boolean'], 'image' => ['type' => 'string', 'format' => 'binary'],
+                'title' => ['type' => 'string', 'example' => 'Tips Menyikat Gigi yang Benar'], 'category' => ['type' => 'string', 'enum' => ['kesehatan_gigi', 'teknologi', 'klinik', 'edukasi', 'umum'], 'example' => 'edukasi'], 'summary' => ['type' => 'string', 'example' => 'Teknik menyikat gigi yang direkomendasikan dokter gigi.'], 'content' => ['type' => 'string', 'example' => 'Sikat gigi dua kali sehari selama dua menit dengan teknik Bass.'], 'is_published' => ['type' => 'string', 'enum' => ['1', '0'], 'example' => '1', 'description' => 'Gunakan 1 (true) atau 0 (false) untuk form-data.'], 'image' => ['type' => 'string', 'format' => 'binary'],
             ]]]],
         ],
         'responses' => [
@@ -966,7 +981,16 @@ $spec['paths']['/v1/admin/news'] = [
         ],
     ],
 ];
-$spec['paths']['/v1/admin/news/{id}'] = $idCrud('Admin News', 'News', 'berita', $news, 'Detail berita', 'Berita berhasil diperbarui', 'Berita berhasil dihapus', ['title' => ['Judul maksimal 255 karakter.']]);
+$spec['paths']['/v1/admin/news/{id}'] = $idCrud('Admin News', 'News', 'berita', $news, 'Detail berita', 'Berita berhasil diperbarui', 'Berita berhasil dihapus', ['title' => ['Judul maksimal 255 karakter.']], [
+    'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'properties' => [
+        'title' => ['type' => 'string', 'example' => 'Tips Menyikat Gigi yang Benar - Updated'],
+        'category' => ['type' => 'string', 'enum' => ['kesehatan_gigi', 'teknologi', 'klinik', 'edukasi', 'umum'], 'example' => 'edukasi'],
+        'summary' => ['type' => 'string', 'example' => 'Panduan singkat menyikat gigi yang aman untuk email.'],
+        'content' => ['type' => 'string', 'example' => 'Gunakan sikat berbulu lembut dan ganti sikat setiap 3 bulan.'],
+        'is_published' => ['type' => 'string', 'enum' => ['1', '0'], 'example' => '1', 'description' => 'Gunakan 1 (true) atau 0 (false) untuk form-data.'],
+        'image' => ['type' => 'string', 'format' => 'binary'],
+    ]]]],
+], true);
 
 // Admin articles
 $spec['paths']['/v1/admin/articles'] = [
