@@ -23,6 +23,7 @@ class DashboardController extends Controller
                 'type' => 'news',
                 'id' => $item->id,
                 'title' => $item->title,
+                'image' => $item->cover_image_url,
                 'is_published' => $item->is_published,
                 'created_at' => $item->created_at,
             ]);
@@ -34,6 +35,7 @@ class DashboardController extends Controller
                 'type' => 'article',
                 'id' => $item->id,
                 'title' => $item->title,
+                'image' => $item->cover_image_url,
                 'is_published' => $item->is_published,
                 'created_at' => $item->created_at,
             ]);
@@ -45,6 +47,7 @@ class DashboardController extends Controller
                 'type' => 'product',
                 'id' => $item->id,
                 'title' => $item->name,
+                'image' => $item->product_image_url,
                 'is_published' => $item->is_active,
                 'created_at' => $item->created_at,
             ]);
