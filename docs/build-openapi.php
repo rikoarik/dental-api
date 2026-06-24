@@ -663,16 +663,17 @@ $spec = [
                     '401' => $unauth('Token tidak valid'),
                 ],
             ],
-            'put' => [
+            'post' => [
                 'tags' => ['Public Auth'],
                 'summary' => 'Update profil user',
-                'description' => "Update nama, email, password, atau avatar.\n\n**Auth:** Bearer token user.\n**Content-Type:** multipart/form-data\n**Catatan:** Password hanya diubah jika field `password` diisi.",
+                'description' => "Update nama, email, password, atau avatar.\n\n**Auth:** Bearer token user.\n**Content-Type:** multipart/form-data\n**Catatan:** Password hanya diubah jika field `password` diisi.\n\n**PENTING (upload avatar):** Karena ada file `avatar`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `\$_FILES` untuk PUT, sehingga avatar tidak tersimpan walau response sukses.",
                 'operationId' => 'publicAuthProfileUpdate',
                 'security' => [['bearerAuth' => []]],
                 'requestBody' => [
                     'content' => [
                         'multipart/form-data' => [
                             'schema' => ['type' => 'object', 'properties' => [
+                                '_method' => ['type' => 'string', 'enum' => ['PUT'], 'example' => 'PUT'],
                                 'name' => ['type' => 'string'],
                                 'email' => ['type' => 'string', 'format' => 'email'],
                                 'password' => ['type' => 'string', 'minLength' => 8],
@@ -1034,7 +1035,15 @@ $spec['paths']['/v1/admin/articles'] = [
         ],
     ],
 ];
-$spec['paths']['/v1/admin/articles/{id}'] = $idCrud('Admin Articles', 'Articles', 'artikel', $article, 'Detail artikel', 'Artikel berhasil diperbarui', 'Artikel berhasil dihapus', ['content' => ['Konten wajib diisi.']]);
+$spec['paths']['/v1/admin/articles/{id}'] = $idCrud('Admin Articles', 'Articles', 'artikel', $article, 'Detail artikel', 'Artikel berhasil diperbarui', 'Artikel berhasil dihapus', ['content' => ['Konten wajib diisi.']], [
+    'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'properties' => [
+        'title' => ['type' => 'string'],
+        'category' => ['type' => 'string'],
+        'content' => ['type' => 'string'],
+        'is_published' => ['type' => 'boolean'],
+        'image' => ['type' => 'string', 'format' => 'binary'],
+    ]]]],
+], true);
 
 // Admin products
 $spec['paths']['/v1/admin/products'] = [
@@ -1080,7 +1089,19 @@ $spec['paths']['/v1/admin/products'] = [
         ],
     ],
 ];
-$spec['paths']['/v1/admin/products/{id}'] = $idCrud('Admin Products', 'Products', 'produk', $product, 'Detail katalog obat', 'Katalog obat berhasil diperbarui', 'Katalog obat berhasil dihapus', ['name' => ['Nama wajib diisi.']]);
+$spec['paths']['/v1/admin/products/{id}'] = $idCrud('Admin Products', 'Products', 'produk', $product, 'Detail katalog obat', 'Katalog obat berhasil diperbarui', 'Katalog obat berhasil dihapus', ['name' => ['Nama wajib diisi.']], [
+    'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'properties' => [
+        'name' => ['type' => 'string'],
+        'category' => ['type' => 'string'],
+        'description' => ['type' => 'string'],
+        'benefits' => ['type' => 'array', 'items' => ['type' => 'string']],
+        'usage_instructions' => ['type' => 'string'],
+        'doctor_tips' => ['type' => 'string'],
+        'dosage' => ['type' => 'string'],
+        'is_active' => ['type' => 'boolean'],
+        'image' => ['type' => 'string', 'format' => 'binary'],
+    ]]]],
+], true);
 
 // Admin tips
 $spec['paths']['/v1/admin/tips'] = [
@@ -1117,7 +1138,13 @@ $spec['paths']['/v1/admin/tips'] = [
         ],
     ],
 ];
-$spec['paths']['/v1/admin/tips/{id}'] = $idCrud('Admin Tips', 'Tips', 'tip harian', $tip, 'Detail tip harian', 'Tip harian berhasil diperbarui', 'Tip harian berhasil dihapus', ['content' => ['Konten wajib diisi.']]);
+$spec['paths']['/v1/admin/tips/{id}'] = $idCrud('Admin Tips', 'Tips', 'tip harian', $tip, 'Detail tip harian', 'Tip harian berhasil diperbarui', 'Tip harian berhasil dihapus', ['content' => ['Konten wajib diisi.']], [
+    'content' => ['multipart/form-data' => ['schema' => ['type' => 'object', 'properties' => [
+        'content' => ['type' => 'string'],
+        'is_active' => ['type' => 'boolean'],
+        'image' => ['type' => 'string', 'format' => 'binary'],
+    ]]]],
+], true);
 
 // Admin FAQs
 $spec['paths']['/v1/admin/faqs'] = [

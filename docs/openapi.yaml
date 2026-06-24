@@ -10,14 +10,6 @@ servers:
     url: /api
     description: "Default — same origin (pakai ini di Swagger, hindari CORS)"
   -
-    url: "https://eternal-outpour-humorist.ngrok-free.dev/api"
-    description: Ngrok Tunnel
-  -
-    url: "http://127.0.0.1:8000/api"
-    description: Local explicit — hanya dari mesin yang menjalankan artisan serve
-  -
-    url: "http://10.0.2.2:8000/api"
-    description: Android Emulator
 tags:
   -
     name: Public API
@@ -1055,11 +1047,11 @@ paths:
                 status: false
                 message: Unauthenticated.
                 data: null
-    put:
+    post:
       tags:
         - Public Auth
       summary: Update profil user
-      description: "Update nama, email, password, atau avatar.\n\n**Auth:** Bearer token user.\n**Content-Type:** multipart/form-data\n**Catatan:** Password hanya diubah jika field `password` diisi."
+      description: "Update nama, email, password, atau avatar.\n\n**Auth:** Bearer token user.\n**Content-Type:** multipart/form-data\n**Catatan:** Password hanya diubah jika field `password` diisi.\n\n**PENTING (upload avatar):** Karena ada file `avatar`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga avatar tidak tersimpan walau response sukses."
       operationId: publicAuthProfileUpdate
       security:
         -
@@ -1070,6 +1062,11 @@ paths:
             schema:
               type: object
               properties:
+                _method:
+                  type: string
+                  enum:
+                    - PUT
+                  example: PUT
                 name:
                   type: string
                 email:
@@ -1974,11 +1971,11 @@ paths:
                 status: false
                 message: Data tidak ditemukan.
                 data: null
-    put:
+    post:
       tags:
         - Admin Banners
       summary: Update banner
-      description: "Memperbarui banner. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      description: "Memperbarui banner. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses."
       operationId: adminBannersUpdate
       security:
         -
@@ -1992,6 +1989,11 @@ paths:
             schema:
               type: object
               properties:
+                _method:
+                  type: string
+                  enum:
+                    - PUT
+                  example: PUT
                 title:
                   type: string
                 subtitle:
@@ -2371,11 +2373,11 @@ paths:
                 status: false
                 message: Data tidak ditemukan.
                 data: null
-    put:
+    post:
       tags:
         - Admin News
       summary: Update berita
-      description: "Memperbarui berita. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      description: "Memperbarui berita. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses."
       operationId: adminNewsUpdate
       security:
         -
@@ -2389,8 +2391,24 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                _method:
                   type: string
+                  enum:
+                    - PUT
+                  example: PUT
+                title:
+                  type: string
+                category:
+                  type: string
+                summary:
+                  type: string
+                content:
+                  type: string
+                is_published:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
         200:
           description: 200 OK — berita diperbarui
@@ -2754,11 +2772,11 @@ paths:
                 status: false
                 message: Data tidak ditemukan.
                 data: null
-    put:
+    post:
       tags:
         - Admin Articles
       summary: Update artikel
-      description: "Memperbarui artikel. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      description: "Memperbarui artikel. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses."
       operationId: adminArticlesUpdate
       security:
         -
@@ -2772,8 +2790,22 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                _method:
                   type: string
+                  enum:
+                    - PUT
+                  example: PUT
+                title:
+                  type: string
+                category:
+                  type: string
+                content:
+                  type: string
+                is_published:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
         200:
           description: 200 OK — artikel diperbarui
@@ -3159,11 +3191,11 @@ paths:
                 status: false
                 message: Data tidak ditemukan.
                 data: null
-    put:
+    post:
       tags:
         - Admin Products
       summary: Update produk
-      description: "Memperbarui produk. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      description: "Memperbarui produk. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses."
       operationId: adminProductsUpdate
       security:
         -
@@ -3177,8 +3209,32 @@ paths:
             schema:
               type: object
               properties:
+                _method:
+                  type: string
+                  enum:
+                    - PUT
+                  example: PUT
                 name:
                   type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                benefits:
+                  type: array
+                  items:
+                    type: string
+                usage_instructions:
+                  type: string
+                doctor_tips:
+                  type: string
+                dosage:
+                  type: string
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
         200:
           description: 200 OK — produk diperbarui
@@ -3506,11 +3562,11 @@ paths:
                 status: false
                 message: Data tidak ditemukan.
                 data: null
-    put:
+    post:
       tags:
         - Admin Tips
       summary: Update tip harian
-      description: "Memperbarui tip harian. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin."
+      description: "Memperbarui tip harian. Kirim hanya field yang ingin diubah.\n\n**Auth:** Bearer token admin.\n\n**PENTING (upload gambar):** Karena ada file `image`, kirim sebagai **POST** dengan field `_method=PUT` (method spoofing Laravel). Jangan pakai PUT multipart langsung — PHP tidak mem-parsing `$_FILES` untuk PUT, sehingga gambar tidak tersimpan walau response sukses."
       operationId: adminTipsUpdate
       security:
         -
@@ -3524,8 +3580,18 @@ paths:
             schema:
               type: object
               properties:
-                name:
+                _method:
                   type: string
+                  enum:
+                    - PUT
+                  example: PUT
+                content:
+                  type: string
+                is_active:
+                  type: boolean
+                image:
+                  type: string
+                  format: binary
       responses:
         200:
           description: 200 OK — tip harian diperbarui
