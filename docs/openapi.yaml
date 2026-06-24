@@ -1850,7 +1850,12 @@ paths:
                   type: string
                   format: uri
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -2003,7 +2008,12 @@ paths:
                 link_url:
                   type: string
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -2248,7 +2258,12 @@ paths:
                 content:
                   type: string
                 is_published:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -2405,7 +2420,12 @@ paths:
                 content:
                   type: string
                 is_published:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -2649,7 +2669,12 @@ paths:
                 content:
                   type: string
                 is_published:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -2802,7 +2827,12 @@ paths:
                 content:
                   type: string
                 is_published:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -3062,7 +3092,12 @@ paths:
                 dosage:
                   type: string
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -3231,7 +3266,12 @@ paths:
                 dosage:
                   type: string
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -3451,7 +3491,12 @@ paths:
                 content:
                   type: string
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
@@ -3588,7 +3633,12 @@ paths:
                 content:
                   type: string
                 is_active:
-                  type: boolean
+                  type: string
+                  enum:
+                    - '1'
+                    - '0'
+                  example: '1'
+                  description: Gunakan 1 (true) atau 0 (false) untuk form-data.
                 image:
                   type: string
                   format: binary
