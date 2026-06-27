@@ -129,6 +129,30 @@ class PublicApiTest extends TestCase
         $this->assertEquals(1, $article->fresh()->like_count);
     }
 
+    public function test_can_filter_products_by_search_and_category(): void
+    {
+        Product::create([
+            'name' => 'Pasta Gigi Sensitif',
+            'slug' => 'pasta-gigi-sensitif',
+            'category' => 'produk_gigi',
+            'description' => 'Deskripsi',
+            'is_active' => true,
+        ]);
+        Product::create([
+            'name' => 'Sikat Gigi',
+            'slug' => 'sikat-gigi',
+            'category' => 'produk_gigi',
+            'description' => 'Deskripsi',
+            'is_active' => true,
+        ]);
+
+        $response = $this->getJson('/api/v1/public/products?search=pasta');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Pasta Gigi Sensitif');
+    }
+
     public function test_can_view_product_detail_with_related_articles(): void
     {
         Product::create([

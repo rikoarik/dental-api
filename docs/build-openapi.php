@@ -274,6 +274,14 @@ $publicListParams = [
     ['$ref' => '#/components/parameters/PerPageParam'],
 ];
 
+$publicProductListParams = [
+    ['$ref' => '#/components/parameters/CategoryProduct'],
+    ['$ref' => '#/components/parameters/SearchParam'],
+    ['$ref' => '#/components/parameters/LimitParam'],
+    ['$ref' => '#/components/parameters/PageParam'],
+    ['$ref' => '#/components/parameters/PerPageParam'],
+];
+
 $adminListParams = [
     ['$ref' => '#/components/parameters/PageParam'],
     ['$ref' => '#/components/parameters/PerPageParam'],
@@ -541,14 +549,9 @@ $spec = [
             'get' => [
                 'tags' => ['Public API'],
                 'summary' => 'List produk aktif',
-                'description' => "Katalog produk/perawatan.\n\n**Auth:** Tidak perlu.\n**Filter:** `is_active = true`.\n\n{$publicListModeDoc}",
+                'description' => "Katalog produk/perawatan.\n\n**Auth:** Tidak perlu.\n**Filter:** category, search (hanya produk aktif).\n\n{$publicListModeDoc}",
                 'operationId' => 'publicProductsIndex',
-                'parameters' => [
-                    ['$ref' => '#/components/parameters/CategoryProduct'],
-                    ['$ref' => '#/components/parameters/LimitParam'],
-                    ['$ref' => '#/components/parameters/PageParam'],
-                    ['$ref' => '#/components/parameters/PerPageParam'],
-                ],
+                'parameters' => $publicProductListParams,
                 'responses' => [
                     '200' => $listResponse('200 OK — Produk berhasil dimuat', 'Data produk berhasil dimuat.', $product),
                     '429' => $rateLimit('Throttle grup public'),
@@ -1040,7 +1043,7 @@ $spec['paths']['/v1/admin/articles/{id}'] = $idCrud('Admin Articles', 'Articles'
         'title' => ['type' => 'string'],
         'category' => ['type' => 'string'],
         'content' => ['type' => 'string'],
-        'is_published' => ['type' => 'boolean'],
+        'is_published' => ['type' => 'string', 'enum' => ['1', '0'], 'example' => '1', 'description' => 'Gunakan 1 (true) atau 0 (false) untuk form-data.'],
         'image' => ['type' => 'string', 'format' => 'binary'],
     ]]]],
 ], true);

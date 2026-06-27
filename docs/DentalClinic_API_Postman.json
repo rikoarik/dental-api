@@ -1666,7 +1666,7 @@
                                     "request": {
                                         "name": "List produk aktif",
                                         "description": {
-                                            "content": "Katalog produk/perawatan.\n\n**Auth:** Tidak perlu.\n**Filter:** `is_active = true`.\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)\n\n**Alternatif tanpa pagination:**\n- `limit` — ambil N item sebagai array (max 20), tanpa perlu `page`",
+                                            "content": "Katalog produk/perawatan.\n\n**Auth:** Tidak perlu.\n**Filter:** category, search (hanya produk aktif).\n\n**Mode response (FE yang tentukan):**\n- Tanpa `page` → `data` berupa **array** semua item (sama seperti `/public/banners`)\n- Dengan `page` → `data` berupa **objek pagination** Laravel\n\n**Query pagination (opsional):**\n- `page` — nomor halaman (wajib diisi FE jika mau pagination)\n- `per_page` — item per halaman (1-50, default 15)\n\n**Alternatif tanpa pagination:**\n- `limit` — ambil N item sebagai array (max 20), tanpa perlu `page`",
                                             "type": "text/plain"
                                         },
                                         "url": {
@@ -1687,6 +1687,15 @@
                                                     },
                                                     "key": "category",
                                                     "value": "perawatan_gigi"
+                                                },
+                                                {
+                                                    "disabled": false,
+                                                    "description": {
+                                                        "content": "",
+                                                        "type": "text/plain"
+                                                    },
+                                                    "key": "search",
+                                                    "value": "pasta"
                                                 },
                                                 {
                                                     "disabled": false,
@@ -1751,6 +1760,15 @@
                                                             },
                                                             "key": "category",
                                                             "value": "perawatan_gigi"
+                                                        },
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "key": "search",
+                                                            "value": "pasta"
                                                         },
                                                         {
                                                             "disabled": false,
@@ -1825,6 +1843,15 @@
                                                             },
                                                             "key": "category",
                                                             "value": "perawatan_gigi"
+                                                        },
+                                                        {
+                                                            "disabled": false,
+                                                            "description": {
+                                                                "content": "",
+                                                                "type": "text/plain"
+                                                            },
+                                                            "key": "search",
+                                                            "value": "pasta"
                                                         },
                                                         {
                                                             "disabled": false,
